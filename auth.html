@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Signup | Play Now</title>
+    <meta name="description" content="Access your PlayNow account to book sports venues, manage your hosted games, or register as a partner.">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .step {
+            display: none
+        }
+
+        .step.active {
+            display: block
+        }
+
+        .sport-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border: 1.5px solid var(--border-bright);
+            border-radius: 100px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            transition: var(--transition-fast);
+            margin: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em
+        }
+
+        .sport-chip:hover,
+        .sport-chip.selected {
+            background: var(--primary);
+            color: var(--bg-dark);
+            border-color: var(--primary)
+        }
+
+        .role-card {
+            border: 1.5px solid var(--border-bright);
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            text-align: center
+        }
+
+        .role-card:hover,
+        .role-card.selected {
+            border-color: var(--primary);
+            background: rgba(193, 253, 51, 0.05)
+        }
+
+        .role-card.selected {
+            border-width: 2px
+        }
+
+        .skill-btn {
+            padding: 10px 20px;
+            border: 1.5px solid var(--border-bright);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            background: transparent;
+            transition: var(--transition-fast);
+            text-transform: uppercase
+        }
+
+        .skill-btn.selected {
+            background: rgba(193, 253, 51, 0.15);
+            border-color: var(--primary);
+            color: var(--primary)
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border-bright);
+            transition: var(--transition-fast)
+        }
+
+        .step-dot.active {
+            background: var(--primary);
+            width: 24px;
+            border-radius: 4px
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1)
+        }
+
+        .form-group {
+            margin-bottom: 16px
+        }
+
+        .error-msg {
+            color: #ff4444;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            display: none
+        }
+
+        .unique-id-badge {
+            background: rgba(193, 253, 51, 0.1);
+            border: 1px solid rgba(193, 253, 51, 0.3);
+            border-radius: 100px;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 0.05em
+        }
+
+        @media (max-width: 480px) {
+            .card { padding: 20px 16px !important; }
+            .role-card { padding: 14px 10px; }
+            .role-card div:first-child { font-size: 1.5rem !important; }
+        }
+
+        /* Parallax Background */
+        .parallax-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+            background: var(--bg-dark);
+        }
+        .parallax-layer {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.6;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .layer-1 {
+            width: 45vw; height: 45vw;
+            background: var(--primary-glow);
+            top: -15%; left: -10%;
+        }
+        .layer-2 {
+            width: 35vw; height: 35vw;
+            background: rgba(59, 130, 246, 0.15); /* Electric Blue */
+            bottom: -10%; right: -10%;
+        }
+        .layer-3 {
+            width: 25vw; height: 25vw;
+            background: rgba(193, 253, 51, 0.1);
+            top: 30%; left: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Premium Parallax Background -->
+    <div class="parallax-bg">
+        <div class="parallax-layer layer-1"></div>
+        <div class="parallax-layer layer-2"></div>
+        <div class="parallax-layer layer-3"></div>
+    </div>
+    <header id="navbar-container"></header>
+
+    <main class="section-padding" style="padding-top:120px;min-height:100vh;display:flex;align-items:center;">
+        <div class="container">
+            <div class="card" style="max-width:540px;margin:0 auto;">
+
+                <!-- Step dots -->
+                <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;" id="step-dots">
+                    <div class="step-dot active"></div>
+                    <div class="step-dot" id="dot-2"></div>
+                    <div class="step-dot" id="dot-3"></div>
+                    <div class="step-dot" id="dot-4"></div>
+                </div>
+                <div
+                    style="height:3px;background:var(--border-subtle);border-radius:2px;margin-bottom:28px;overflow:hidden;">
+                    <div class="progress-fill" id="progress" style="width:25%;"></div>
+                </div>
+
+                <!-- ── STEP 1: Login or Signup ── -->
+                <div class="step active" id="step-1">
+                    <div
+                        style="display:flex;gap:24px;margin-bottom:28px;border-bottom:1px solid var(--glass-border);padding-bottom:14px;">
+                        <h3 id="login-tab" style="cursor:pointer;position:relative;">Login
+                            <div id="login-ul"
+                                style="position:absolute;bottom:-14px;left:0;width:100%;height:2px;background:var(--primary);border-radius:2px;">
+                            </div>
+                        </h3>
+                        <h3 id="signup-tab" style="cursor:pointer;color:var(--text-muted);">Sign Up</h3>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email / Username / Unique ID</label>
+                        <input type="text" id="email-input" placeholder="e.g. striker_da or PN-USER-1234">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password-input" placeholder="Min 6 characters">
+                    </div>
+
+                    <div id="error-step1" class="error-msg"></div>
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <label
+                            style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text-muted);cursor:pointer;">
+                            <input type="checkbox" id="remember-me" style="width:auto;"> Remember me
+                        </label>
+                        <a href="#" style="color:var(--primary);font-size:0.85rem;text-decoration:none;"
+                            onclick="openForgotModal(); return false;">Forgot Password?</a>
+                    </div>
+
+                    <button class="btn btn-primary" style="width:100%;" id="step1-btn">Continue →</button>
+                    <p style="text-align:center;margin-top:16px;color:var(--text-dim);font-size:0.8rem;"
+                        id="step1-hint">New here? Click Sign Up above!</p>
+                </div>
+
+                <!-- ── STEP 2: Choose Role ── -->
+                <div class="step" id="step-2">
+                    <h2 style="font-size:1.8rem;margin-bottom:6px;">Who are <span class="gradient-text">you?</span></h2>
+                    <p style="margin-bottom:24px;font-size:0.9rem;">Select your role — this decides your access level.
+                    </p>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+                        <div class="role-card" data-role="player" onclick="selectRole('player')">
+                            <div style="font-size:2rem;margin-bottom:8px;">🏃</div>
+                            <div style="font-weight:800;font-size:0.9rem;margin-bottom:4px;">PLAYER</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">Book, play, host games</div>
+                        </div>
+                        <div class="role-card" data-role="owner" onclick="selectRole('owner')">
+                            <div style="font-size:2rem;margin-bottom:8px;">🏟️</div>
+                            <div style="font-weight:800;font-size:0.9rem;margin-bottom:4px;">OWNER</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">List & manage venue</div>
+                        </div>
+
+                    </div>
+
+
+
+                    <div id="error-step2" class="error-msg"></div>
+                    <div style="display:flex;gap:12px;">
+                        <button class="btn btn-outline" style="flex:1;" onclick="goToStep(1)">← Back</button>
+                        <button class="btn btn-primary" style="flex:2;" id="step2-btn">Continue →</button>
+                    </div>
+                </div>
+
+                <!-- ── STEP 3: Profile Details ── -->
+                <div class="step" id="step-3">
+                    <h2 style="font-size:1.8rem;margin-bottom:6px;">Your <span class="gradient-text">Profile</span></h2>
+                    <p style="margin-bottom:24px;font-size:0.9rem;" id="step3-subtitle">Tell us about yourself!</p>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group" style="grid-column:1/-1;">
+                            <label>Full Name</label>
+                            <input type="text" id="name-input" placeholder="Your full name">
+                        </div>
+                        <div class="form-group" style="grid-column:1/-1;">
+                            <label>Username (unique)</label>
+                            <input type="text" id="username-input" placeholder="e.g. striker_da, smash_king">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="phone-input" placeholder="+91 XXXXX XXXXX">
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input type="date" id="dob-input">
+                        </div>
+                        <div class="form-group" style="grid-column:1/-1;">
+                            <label>Location / City</label>
+                            <input type="text" id="location-input" placeholder="e.g. Trichy, Chennai">
+                        </div>
+                    </div>
+
+                    <!-- Venue name — only for owners -->
+                    <div id="venue-name-field" style="display:none;" class="form-group">
+                        <label>Venue / Turf Name</label>
+                        <input type="text" id="venue-name" placeholder="e.g. Elite Sports Arena">
+                    </div>
+
+                    <!-- Sports + Skill — only for players -->
+                    <div id="player-fields" style="display:none;">
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;margin-bottom:10px;">Favourite Sports</label>
+                            <div>
+                                <span class="sport-chip" data-sport="Football">⚽ Football</span>
+                                <span class="sport-chip" data-sport="Cricket">🏏 Cricket</span>
+                                <span class="sport-chip" data-sport="Badminton">🏸 Badminton</span>
+                                <span class="sport-chip" data-sport="Basketball">🏀 Basketball</span>
+                                <span class="sport-chip" data-sport="Tennis">🎾 Tennis</span>
+                                <span class="sport-chip" data-sport="Volleyball">🏐 Volleyball</span>
+                                <span class="sport-chip" data-sport="Kabaddi">🤼 Kabaddi</span>
+                                <span class="sport-chip" data-sport="Table Tennis">🏓 Table Tennis</span>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;margin-bottom:10px;">Skill Level</label>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <button class="skill-btn" data-skill="Beginner">🌱 Beginner</button>
+                                <button class="skill-btn" data-skill="Intermediate">⚡ Intermediate</button>
+                                <button class="skill-btn" data-skill="Advanced">🔥 Advanced</button>
+                                <button class="skill-btn" data-skill="Pro">👑 Pro</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="error-step3" class="error-msg"></div>
+                    <div style="display:flex;gap:12px;margin-top:8px;">
+                        <button class="btn btn-outline" style="flex:1;" onclick="goToStep(2)">← Back</button>
+                        <button class="btn btn-primary" style="flex:2;" id="step3-btn">Create Account →</button>
+                    </div>
+                </div>
+
+                <!-- ── STEP 4: Success ── -->
+                <div class="step" id="step-4" style="text-align:center;">
+                    <div
+                        style="font-size:3.5rem;margin-bottom:16px;display:inline-block;animation:bounce 0.8s ease infinite alternate;">
+                        🎉</div>
+                    <h2 style="font-size:2rem;margin-bottom:8px;">Welcome to <span class="gradient-text">PlayNow!</span>
+                    </h2>
+                    <p style="margin-bottom:20px;" id="success-msg">Your account is ready da!</p>
+
+                    <div class="card"
+                        style="background:rgba(193,253,51,0.05);border-color:rgba(193,253,51,0.2);padding:20px;margin-bottom:24px;text-align:left;">
+                        <div style="font-size:0.9rem;line-height:2.4;">
+                            <div>🆔 <span style="color:var(--text-muted);">Unique ID:</span> <span id="p-uniqueid"
+                                    class="unique-id-badge"></span></div>
+                            <div>👤 <span style="color:var(--text-muted);">Username:</span> <span id="p-username"
+                                    style="color:var(--text-main);font-weight:700;"></span></div>
+                            <div>🎭 <span style="color:var(--text-muted);">Role:</span> <span id="p-role"
+                                    style="color:var(--primary);font-weight:700;text-transform:uppercase;"></span></div>
+                            <div id="p-location-row">📍 <span style="color:var(--text-muted);">Location:</span> <span
+                                    id="p-location" style="color:var(--text-main);font-weight:700;"></span></div>
+                        </div>
+                    </div>
+
+                    <div id="owner-pending"
+                        style="display:none;background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.3);border-radius:12px;padding:16px;margin-bottom:20px;font-size:0.85rem;color:#ffaa00;">
+                        ⏳ Owner account pending approval. Admin approve panniya turf list panlaam!
+                    </div>
+
+                    <a href="dashboard.html" class="btn btn-primary" style="width:100%;margin-bottom:12px;"
+                        id="goto-dashboard">Go to Dashboard 🚀</a>
+                    <a href="Arenas.html" class="btn btn-outline" style="width:100%;font-size:0.85rem;">Browse Arenas
+                        First</a>
+                </div>
+
+                <!-- Forgot Password Modal -->
+                <div id="forgot-modal"
+                    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+                    <div class="card"
+                        style="max-width:400px;width:100%;position:relative;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:24px;padding:32px;">
+                        <button onclick="closeForgotModal()"
+                            style="position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
+                        <h2 style="font-size:1.5rem;margin-bottom:8px;">Reset Password</h2>
+                        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:20px;">Enter your email and
+                            we'll send you a link.</p>
+                        <input type="email" id="forgot-email" placeholder="Your email address"
+                            style="width:100%;margin-bottom:16px;padding:12px;border-radius:8px;border:1px solid var(--border-subtle);background:#111;color:#fff;">
+                        <div id="forgot-msg" style="font-size:0.85rem;margin-bottom:16px;display:none;"></div>
+                        <button class="btn btn-primary" id="forgot-btn" style="width:100%;"
+                            onclick="sendForgotLink()">Send Link</button>
+                    </div>
+                </div>
+
+                <!-- Reset Password Modal -->
+                <div id="reset-modal"
+                    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+                    <div class="card"
+                        style="max-width:400px;width:100%;position:relative;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:24px;padding:32px;">
+                        <h2 style="font-size:1.5rem;margin-bottom:8px;">New Password</h2>
+                        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:20px;">Enter your new password.
+                        </p>
+                        <input type="password" id="reset-password" placeholder="Min 6 characters"
+                            style="width:100%;margin-bottom:16px;padding:12px;border-radius:8px;border:1px solid var(--border-subtle);background:#111;color:#fff;">
+                        <div id="reset-msg" style="font-size:0.85rem;margin-bottom:16px;display:none;"></div>
+                        <button class="btn btn-primary" id="reset-btn" style="width:100%;"
+                            onclick="submitResetPassword()">Reset Password</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <style>
+        @keyframes bounce {
+            from {
+                transform: scale(1)
+            }
+
+            to {
+                transform: scale(1.1) rotate(5deg)
+            }
+        }
+    </style>
+
+    <script src="main.js"></script>
+    <script>
+        const API = '';
+        let isSignup = false;
+        let selectedRole = '';
+        let selectedSports = [];
+        let selectedSkill = '';
+
+        // ── Tab Switch ──────────────────────────────────────────────
+        document.getElementById('login-tab').onclick = () => {
+            isSignup = false;
+            document.getElementById('login-tab').innerHTML = 'Login <div style="position:absolute;bottom:-14px;left:0;width:100%;height:2px;background:var(--primary);border-radius:2px;"></div>';
+            document.getElementById('signup-tab').innerHTML = 'Sign Up';
+            document.getElementById('login-tab').style.color = 'var(--text-main)';
+            document.getElementById('signup-tab').style.color = 'var(--text-muted)';
+            document.getElementById('step1-btn').textContent = 'Login →';
+            document.getElementById('step1-hint').textContent = 'New here? Click Sign Up above!';
+            document.getElementById('dot-2').style.display = 'none';
+            document.getElementById('dot-3').style.display = 'none';
+            document.getElementById('dot-4').style.display = 'none';
+        };
+        document.getElementById('signup-tab').onclick = () => {
+            isSignup = true;
+            document.getElementById('signup-tab').innerHTML = 'Sign Up <div style="position:absolute;bottom:-14px;left:0;width:100%;height:2px;background:var(--primary);border-radius:2px;"></div>';
+            document.getElementById('login-tab').innerHTML = 'Login';
+            document.getElementById('signup-tab').style.color = 'var(--text-main)';
+            document.getElementById('login-tab').style.color = 'var(--text-muted)';
+            document.getElementById('step1-btn').textContent = 'Sign Up →';
+            document.getElementById('step1-hint').textContent = 'Already have account? Click Login above!';
+            document.getElementById('dot-2').style.display = '';
+            document.getElementById('dot-3').style.display = '';
+            document.getElementById('dot-4').style.display = '';
+        };
+
+        // ── Sport chips ─────────────────────────────────────────────
+        document.querySelectorAll('.sport-chip').forEach(chip => {
+            chip.onclick = () => {
+                chip.classList.toggle('selected');
+                const s = chip.dataset.sport;
+                selectedSports = chip.classList.contains('selected')
+                    ? [...selectedSports, s]
+                    : selectedSports.filter(x => x !== s);
+            };
+        });
+
+        // ── Skill buttons ────────────────────────────────────────────
+        document.querySelectorAll('.skill-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.skill-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedSkill = btn.dataset.skill;
+            };
+        });
+
+        // ── Role selection ───────────────────────────────────────────
+        function selectRole(role) {
+            selectedRole = role;
+            document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+            document.querySelector(`[data-role="${role}"]`).classList.add('selected');
+
+        }
+
+        // ── Step 1: Login or continue to signup ─────────────────────
+        document.getElementById('step1-btn').onclick = async () => {
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const errEl = document.getElementById('error-step1');
+            errEl.style.display = 'none';
+
+            if (!email || !password) { showError(errEl, 'Email and password vennum da!'); return; }
+
+            if (!isSignup) {
+                // LOGIN
+                const btn = document.getElementById('step1-btn');
+                btn.textContent = 'Logging in...'; btn.disabled = true;
+                try {
+                    const res = await fetch(API + '/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ loginId: email, password })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) { showError(errEl, data.error || 'Login failed'); btn.textContent = 'Login →'; btn.disabled = false; return; }
+
+                    if (document.getElementById('remember-me').checked) {
+                        localStorage.setItem('playnow_remembered_id', email);
+                    } else {
+                        localStorage.removeItem('playnow_remembered_id');
+                    }
+
+                    saveSession(data);
+                    if (data.user.role === 'admin') window.location.href = 'admin.html';
+                    else if (data.user.role === 'owner') window.location.href = 'owner.html';
+                    else window.location.href = 'dashboard.html';
+                } catch (e) {
+                    showError(errEl, 'Server connect aagala. Node server running ah check pannu!');
+                    btn.textContent = 'Login →'; btn.disabled = false;
+                }
+            } else {
+                // SIGNUP — go to role selection
+                if (password.length < 6) { showError(errEl, 'Password min 6 characters vennum!'); return; }
+                goToStep(2);
+            }
+        };
+
+        // ── Step 2: Role ─────────────────────────────────────────────
+        document.getElementById('step2-btn').onclick = () => {
+            const errEl = document.getElementById('error-step2');
+            errEl.style.display = 'none';
+            if (!selectedRole) { showError(errEl, 'Role select pannu da!'); return; }
+
+            // Show/hide fields based on role
+            document.getElementById('player-fields').style.display = selectedRole === 'player' ? 'block' : 'none';
+            document.getElementById('venue-name-field').style.display = selectedRole === 'owner' ? 'block' : 'none';
+            document.getElementById('step3-subtitle').textContent =
+                selectedRole === 'owner' ? 'Unoda venue details sollu!' :
+                    'Unoda sports background sollu!';
+            goToStep(3);
+        };
+
+        // ── Step 3: Profile ──────────────────────────────────────────
+        document.getElementById('step3-btn').onclick = async () => {
+            const errEl = document.getElementById('error-step3');
+            errEl.style.display = 'none';
+
+            const name = document.getElementById('name-input').value.trim();
+            const username = document.getElementById('username-input').value.trim().replace(/\s+/g, '_').toLowerCase();
+            const phone = document.getElementById('phone-input').value.trim();
+            const location = document.getElementById('location-input').value.trim();
+
+            if (!name || !username) { showError(errEl, 'Name and username fill pannu da!'); return; }
+            if (!location) { showError(errEl, 'Location fill pannu da!'); return; }
+            if (selectedRole === 'player' && selectedSports.length === 0) { showError(errEl, 'Oru sport select pannu da!'); return; }
+            if (selectedRole === 'player' && !selectedSkill) { showError(errEl, 'Skill level select pannu da!'); return; }
+
+            const payload = {
+                name, username, phone, dob: document.getElementById('dob-input').value, location,
+                email: document.getElementById('email-input').value.trim(),
+                password: document.getElementById('password-input').value,
+                role: selectedRole,
+                sports: selectedSports,
+                skill: selectedSkill,
+                venueName: document.getElementById('venue-name').value.trim(),
+                adminSecret: ''
+            };
+
+            const btn = document.getElementById('step3-btn');
+            btn.textContent = 'Creating...'; btn.disabled = true;
+
+            try {
+                const res = await fetch(API + '/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) { showError(errEl, data.error || 'Registration failed'); btn.textContent = 'Create Account →'; btn.disabled = false; return; }
+
+                saveSession(data);
+
+                // Show success
+                document.getElementById('p-uniqueid').textContent = data.user.uniqueId;
+                document.getElementById('p-username').textContent = '@' + data.user.username;
+                document.getElementById('p-role').textContent = data.user.role;
+                document.getElementById('p-location').textContent = location;
+                document.getElementById('success-msg').textContent = `Welcome ${name}! Unoda ID ready da! 🏆`;
+
+                if (selectedRole === 'owner') {
+                    document.getElementById('owner-pending').style.display = 'block';
+                }
+                goToStep(4);
+            } catch (e) {
+                showError(errEl, 'Server connect aagala. Node server running ah check pannu!');
+                btn.textContent = 'Create Account →'; btn.disabled = false;
+            }
+        };
+
+        // ── Helpers ──────────────────────────────────────────────────
+        function goToStep(n) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step-' + n).classList.add('active');
+            document.querySelectorAll('.step-dot').forEach((d, i) => d.classList.toggle('active', i < n));
+            document.getElementById('progress').style.width = (n / 4 * 100) + '%';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showError(el, msg) {
+            el.textContent = msg; el.style.display = 'block';
+        }
+
+        function saveSession(data) {
+            localStorage.setItem('playnow_token', data.token);
+            localStorage.setItem('playnow_user', JSON.stringify(data.user));
+        }
+
+        // Check if already logged in
+        if (localStorage.getItem('playnow_token')) {
+            const user = JSON.parse(localStorage.getItem('playnow_user') || '{}');
+            if (user.role === 'owner') window.location.href = 'owner.html';
+            else window.location.href = 'dashboard.html';
+        }
+
+        // Remember me pre-fill
+        const rememberedId = localStorage.getItem('playnow_remembered_id');
+        if (rememberedId) {
+            document.getElementById('email-input').value = rememberedId;
+            document.getElementById('remember-me').checked = true;
+        }
+
+        // Reset Password Flow
+        const urlParams = new URLSearchParams(window.location.search);
+        const resetToken = urlParams.get('reset');
+        if (resetToken) {
+            document.getElementById('reset-modal').style.display = 'flex';
+        }
+
+        function openForgotModal() { document.getElementById('forgot-modal').style.display = 'flex'; }
+        function closeForgotModal() { document.getElementById('forgot-modal').style.display = 'none'; }
+
+        async function sendForgotLink() {
+            const email = document.getElementById('forgot-email').value;
+            if (!email) return;
+            const btn = document.getElementById('forgot-btn');
+            const msg = document.getElementById('forgot-msg');
+            btn.textContent = 'Sending...'; btn.disabled = true;
+            try {
+                const res = await fetch('/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+                const data = await res.json();
+                msg.style.display = 'block';
+                msg.textContent = data.message || data.error;
+                msg.style.color = data.success ? '#00cc88' : '#ff4444';
+            } catch (e) {
+                msg.style.display = 'block'; msg.textContent = 'Network error'; msg.style.color = '#ff4444';
+            }
+            btn.textContent = 'Send Link'; btn.disabled = false;
+        }
+
+        async function submitResetPassword() {
+            const pwd = document.getElementById('reset-password').value;
+            if (pwd.length < 6) return alert('Min 6 characters required');
+            const btn = document.getElementById('reset-btn');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/auth/reset-password/' + resetToken, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pwd }) });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Password reset successful! You can now login.');
+                    window.location.href = 'auth.html';
+                } else {
+                    alert(data.error);
+                }
+            } catch (e) { alert('Network error'); }
+            btn.disabled = false;
+        }
+
+        // ── Enter Key Support ─────────────────────────────────────────
+        document.body.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (e.target.tagName === 'TEXTAREA') return;
+
+                // 1. Check Modals first
+                const resetModal = document.getElementById('reset-modal');
+                const forgotModal = document.getElementById('forgot-modal');
+                
+                if (resetModal && resetModal.style.display === 'flex') {
+                    e.preventDefault(); document.getElementById('reset-btn').click(); return;
+                }
+                if (forgotModal && forgotModal.style.display === 'flex') {
+                    e.preventDefault(); document.getElementById('forgot-btn').click(); return;
+                }
+                
+                // 2. Check Auth Steps
+                const activeStep = Array.from(document.querySelectorAll('.step')).find(s => s.classList.contains('active'));
+                if (!activeStep) return;
+
+                e.preventDefault();
+                const stepId = parseInt(activeStep.id.split('-')[1]);
+                
+                if (stepId === 1) document.getElementById('step1-btn').click();
+                else if (stepId === 2) document.getElementById('step2-btn').click();
+                else if (stepId === 3) document.getElementById('step3-btn').click();
+            }
+        });
+
+        // ── Premium Parallax Effect ───────────────────────────────────
+        document.addEventListener('mousemove', (e) => {
+            // Calculate mouse position relative to the center of the screen
+            const x = (window.innerWidth / 2 - e.pageX) / 50;
+            const y = (window.innerHeight / 2 - e.pageY) / 50;
+
+            const layer1 = document.querySelector('.layer-1');
+            const layer2 = document.querySelector('.layer-2');
+            const layer3 = document.querySelector('.layer-3');
+
+            // Apply slight movements in different directions/speeds for depth
+            if (layer1) layer1.style.transform = `translate(${x * 1.5}px, ${y * 1.5}px)`;
+            if (layer2) layer2.style.transform = `translate(${x * -2.5}px, ${y * -2.5}px)`;
+            if (layer3) layer3.style.transform = `translate(${x * 3.5}px, ${y * 3.5}px)`;
+        });
+    </script>
+</body>
+
+</html>

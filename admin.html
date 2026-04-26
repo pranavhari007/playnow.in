@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | Play Now</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── Responsive Base ── */
+        * { box-sizing: border-box; }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: 1.5px solid var(--border-bright);
+            border-radius: 100px;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: var(--bg-dark);
+            border-color: var(--primary);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ── Stats Grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        /* ── Tabs scroll on mobile ── */
+        .tabs-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            margin-bottom: 24px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .tabs-row::-webkit-scrollbar { display: none; }
+
+        /* ── Table responsive wrapper ── */
+        .table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 500px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 11px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        .badge-role {
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .role-player { background: rgba(29, 193, 211, 0.15); color: #1dc1d3; }
+        .role-owner  { background: rgba(251, 191, 36, 0.15);  color: #fbbf24; }
+        .role-admin  { background: rgba(193, 253, 51, 0.15);  color: var(--primary); }
+
+        /* ── Owner Detail Card ── */
+        .owner-detail-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 0;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .owner-detail-card:hover { border-color: rgba(193,253,51,0.3); }
+
+        .owner-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .owner-avatar {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24, #f97316);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 1.2rem; color: #000;
+            flex-shrink: 0;
+        }
+
+        .owner-stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .owner-stat {
+            padding: 14px 16px;
+            text-align: center;
+            border-right: 1px solid var(--border-subtle);
+        }
+        .owner-stat:last-child { border-right: none; }
+
+        .owner-turfs-list {
+            border-top: 1px solid var(--border-subtle);
+            padding: 16px 20px;
+        }
+
+        .turf-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.02);
+            margin-bottom: 8px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* ── Responsive breakpoints ── */
+        @media (max-width: 768px) {
+            .admin-header { flex-direction: column; align-items: flex-start !important; }
+            .admin-title { font-size: 1.8rem !important; }
+            
+            .data-table { font-size: 0.8rem; }
+            .data-table th, .data-table td { padding: 10px 12px; }
+            
+            .owner-header { gap: 10px; }
+        }
+
+        @media (max-width: 480px) {
+            .admin-title { font-size: 1.5rem !important; }
+            .stat-card { padding: 12px; }
+            .stat-card .stat-num { font-size: 1.6rem !important; }
+        }
+
+        /* Pending approve card */
+        .pending-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <header id="navbar-container"></header>
+
+    <main style="padding-top:90px;min-height:100vh;">
+        <div class="container" style="padding:32px 0 80px;">
+
+            <div class="admin-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;gap:16px;flex-wrap:wrap;">
+                <div>
+                    <span class="badge badge-primary" style="margin-bottom:8px;">Admin Panel</span>
+                    <h1 class="admin-title" style="font-size:2.2rem;">PlayNow <span class="gradient-text">Control Centre</span></h1>
+                    <p id="admin-welcome" style="margin-top:6px;font-size:0.9rem;">Loading...</p>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <div style="font-family:monospace;font-size:0.8rem;color:var(--text-muted);background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 16px;border:1px solid var(--border-subtle);">
+                        🕐 <span id="admin-time"></span>
+                    </div>
+                    <button onclick="loadAll()" class="btn btn-outline" style="padding:10px 16px;font-size:0.8rem;border-radius:10px;">🔄 Refresh Data</button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-num" style="font-size:2rem;font-weight:900;color:var(--primary);" id="stat-users">—</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;">Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="font-size:2rem;font-weight:900;color:#fbbf24;" id="stat-owners">—</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;">Owners</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="font-size:2rem;font-weight:900;color:#1dc1d3;" id="stat-players">—</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;">Players</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="font-size:2rem;font-weight:900;color:#ff7f50;" id="stat-pending">—</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="font-size:2rem;font-weight:900;color:var(--primary);" id="stat-arenas">—</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;">Arenas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num" style="font-size:2rem;font-weight:900;color:#00cc88;" id="stat-bookings">—</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;margin-top:4px;">Bookings</div>
+                </div>
+            </div>
+
+            <!-- Tabs (horizontal scroll on mobile) -->
+            <div class="tabs-row">
+                <button class="tab-btn active" onclick="switchTab('owners')">🏟️ Owners & Turfs</button>
+                <button class="tab-btn" onclick="switchTab('users')">👥 All Users</button>
+                <button class="tab-btn" onclick="switchTab('pending')">⏳ Pending</button>
+                <button class="tab-btn" onclick="switchTab('arenas')">🏟️ Arenas</button>
+                <button class="tab-btn" onclick="switchTab('bookings')">📅 Bookings</button>
+                <button class="tab-btn" onclick="switchTab('games')">🎮 Games</button>
+            </div>
+
+            <!-- ── TAB: Owners & Turfs (NEW MAIN VIEW) ── -->
+            <div class="tab-content active" id="tab-owners">
+                <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                    <h3 style="font-size:1.2rem;">Turf Owners Overview</h3>
+                    <span style="font-size:0.8rem;color:var(--text-dim);">Each owner kum total bookings & turfs kadaikkum</span>
+                </div>
+                <div id="owners-grid" style="display:flex;flex-direction:column;gap:16px;">
+                    <div style="text-align:center;padding:60px;color:var(--text-dim);">Loading owner details...</div>
+                </div>
+            </div>
+
+            <!-- ── TAB: Users ── -->
+            <div class="tab-content" id="tab-users">
+                <div class="table-wrap">
+                    <table class="data-table" id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Unique ID</th>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Location</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            <tr>
+                                <td colspan="6" style="padding:40px;">
+                                    <div class="skeleton" style="height:40px; margin-bottom:10px; border-radius:8px;"></div>
+                                    <div class="skeleton" style="height:40px; margin-bottom:10px; border-radius:8px; opacity:0.7;"></div>
+                                    <div class="skeleton" style="height:40px; border-radius:8px; opacity:0.4;"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── TAB: Pending ── -->
+            <div class="tab-content" id="tab-pending">
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:1rem;margin-bottom:4px;">⏳ Pending Owner Accounts</h3>
+                    <p style="font-size:0.8rem;color:var(--text-dim);">Approve owners so they can list their turfs</p>
+                </div>
+                <div id="pending-list" style="display:flex;flex-direction:column;gap:14px;margin-bottom:32px;">
+                    <div style="text-align:center;padding:40px;color:var(--text-dim);">Loading pending owners...</div>
+                </div>
+
+                <div style="margin-bottom:20px;border-top:1px solid var(--border-subtle);padding-top:24px;">
+                    <h3 style="font-size:1rem;margin-bottom:4px;">🏟️ Pending Turf Approvals</h3>
+                    <p style="font-size:0.8rem;color:var(--text-dim);">Turfs submitted by owners — review and approve to make them visible</p>
+                </div>
+                <div id="pending-turfs-list" style="display:flex;flex-direction:column;gap:14px;">
+                    <div style="text-align:center;padding:40px;color:var(--text-dim);">Loading pending turfs...</div>
+                </div>
+            </div>
+
+            <!-- ── TAB: Arenas ── -->
+            <div class="tab-content" id="tab-arenas">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Turf ID</th>
+                                <th>Name</th>
+                                <th>Location</th>
+                                <th>Owner ID</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="Arenas-tbody">
+                            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── TAB: Bookings ── -->
+            <div class="tab-content" id="tab-bookings">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Name</th>
+                                <th>Venue</th>
+                                <th>Date</th>
+                                <th>Slot</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookings-tbody">
+                            <tr>
+                                <td colspan="6" style="padding:40px;">
+                                    <div class="skeleton" style="height:40px; margin-bottom:10px; border-radius:8px;"></div>
+                                    <div class="skeleton" style="height:40px; margin-bottom:10px; border-radius:8px; opacity:0.7;"></div>
+                                    <div class="skeleton" style="height:40px; border-radius:8px; opacity:0.4;"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── TAB: Games ── -->
+            <div class="tab-content" id="tab-games">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Game ID</th>
+                                <th>Sport</th>
+                                <th>Venue</th>
+                                <th>Date</th>
+                                <th>Players</th>
+                                <th>Hosted By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="games-tbody">
+                            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="main.js"></script>
+    <script>
+        const token = localStorage.getItem('playnow_token');
+        const user = JSON.parse(localStorage.getItem('playnow_user') || '{}');
+
+        // Auth check
+        if (!token || user.role !== 'admin') {
+            alert('Admin access only da!');
+            window.location.href = 'admin-login.html';
+        }
+
+        document.getElementById('admin-welcome').textContent = 'Welcome back, ' + (user.name || user.username) + '! 👑';
+
+        // Live time
+        function updateTime() {
+            document.getElementById('admin-time').textContent = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+        updateTime(); setInterval(updateTime, 30000);
+
+        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+
+        let allUsers = [], allArenas = [], allBookings = [], allGames = [];
+
+        async function loadAll() {
+            // ── Users ──
+            try {
+                const usersRes = await fetch('/api/admin/users', { headers });
+                allUsers = await usersRes.json();
+
+                // Pending owners
+                const owners = Array.isArray(allUsers) ? allUsers.filter(u => u.role === 'owner') : [];
+                const pending = owners.filter(u => !u.approved);
+
+                document.getElementById('stat-users').textContent = Array.isArray(allUsers) ? allUsers.length : 0;
+                document.getElementById('stat-owners').textContent = owners.length;
+                document.getElementById('stat-players').textContent = Array.isArray(allUsers) ? allUsers.filter(u => u.role === 'player').length : 0;
+                document.getElementById('stat-pending').textContent = pending.length;
+
+                // Users table
+                document.getElementById('users-tbody').innerHTML = Array.isArray(allUsers) && allUsers.length ? allUsers.map(u => `
+                    <tr>
+                        <td><span style="font-family:monospace;font-size:0.75rem;color:var(--primary);">${u.uniqueId || '—'}</span></td>
+                        <td style="font-weight:700;">${u.name || '—'}</td>
+                        <td style="color:var(--text-muted);">@${u.username || '—'}</td>
+                        <td><span class="badge-role role-${u.role}">${u.role}</span></td>
+                        <td style="color:var(--text-muted);">${u.location || '—'}</td>
+                        <td style="color:var(--text-dim);font-size:0.8rem;">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN') : '—'}</td>
+                    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">No users found.</td></tr>';
+
+                // Pending owners
+                document.getElementById('pending-list').innerHTML = pending.length ? pending.map(u => `
+                    <div class="pending-card">
+                        <div style="flex:1;min-width:200px;">
+                            <div style="font-weight:800;margin-bottom:4px;">${u.name || u.username} <span style="font-family:monospace;font-size:0.7rem;color:var(--text-muted);">${u.uniqueId}</span></div>
+                            <div style="font-size:0.82rem;color:var(--text-muted);">📍 ${u.location || '—'} • 📧 ${u.email || '—'}</div>
+                        </div>
+                        <button class="btn btn-primary" style="padding:9px 18px;font-size:0.78rem;white-space:nowrap;" onclick="approveOwner('${u.uniqueId}', this)">✓ Approve Account</button>
+                    </div>`).join('') : '<div style="text-align:center;padding:60px;color:var(--text-dim);">No pending owners! All clear ✅</div>';
+
+                // Build owners view (will be updated after arenas load)
+                buildOwnersView(owners, allArenas, allBookings);
+
+            } catch (e) {
+                console.error('Users load error:', e);
+                const errHtml = `<div style="text-align:center;padding:40px;color:#ff4444;background:rgba(255,68,68,0.05);border-radius:12px;border:1px solid rgba(255,68,68,0.2);">
+                    <div style="font-size:1.5rem;margin-bottom:8px;">⚠️</div>
+                    <strong>Failed to connect to server.</strong><br>
+                    <span style="font-size:0.8rem;opacity:0.8;">${e.message}</span><br>
+                    <button onclick="loadAll()" class="btn btn-outline" style="margin-top:12px;font-size:0.7rem;padding:6px 12px;">Retry</button>
+                </div>`;
+                document.getElementById('users-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#ff4444;">Error loading users.</td></tr>';
+                document.getElementById('owners-grid').innerHTML = errHtml;
+                document.getElementById('pending-list').innerHTML = errHtml;
+            }
+
+            // ── Turfs / Arenas ──
+            try {
+                const turfRes = await fetch('/api/admin/turfs', { headers });
+                allArenas = await turfRes.json();
+
+                document.getElementById('stat-arenas').textContent = Array.isArray(allArenas) ? allArenas.length : 0;
+
+                document.getElementById('Arenas-tbody').innerHTML = Array.isArray(allArenas) && allArenas.length ? allArenas.map(t => `
+                    <tr>
+                        <td><span style="font-family:monospace;font-size:0.75rem;color:var(--primary);">${(t._id || t.id || '').toString().slice(-6)}</span></td>
+                        <td style="font-weight:700;">${t.name}</td>
+                        <td>${t.location}</td>
+                        <td><span style="font-family:monospace;font-size:0.75rem;color:var(--text-muted);">${t.ownerId || '—'}</span></td>
+                        <td><span style="font-size:0.7rem;padding:3px 8px;border-radius:10px;background:${t.approved ? '#00cc8822' : '#ffaa0022'};color:${t.approved ? '#00cc88' : '#ffaa00'};">${t.approved ? '✓ Active' : '⏳ Pending'}</span></td>
+                        <td>
+                            ${!t.approved
+                                ? `<button class="btn btn-outline" style="padding:4px 10px;font-size:0.7rem;border-color:#00cc88;color:#00cc88;" onclick="toggleTurfApproval('${t._id || t.id}', true, this)">Approve</button>`
+                                : `<button class="btn btn-outline" style="padding:4px 10px;font-size:0.7rem;border-color:#ff4444;color:#ff4444;" onclick="toggleTurfApproval('${t._id || t.id}', false, this)">Reject</button>`
+                            }
+                        </td>
+                    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">No Arenas yet</td></tr>';
+
+                // Re-build owners view now that arenas are loaded
+                const owners = allUsers.filter(u => u.role === 'owner');
+                buildOwnersView(owners, allArenas, allBookings);
+
+                // ── Pending Turfs (in Pending tab) ──
+                const pendingTurfs = Array.isArray(allArenas) ? allArenas.filter(t => !t.approved) : [];
+
+                // Update pending stat to include pending turfs
+                const pendingOwners = allUsers.filter(u => u.role === 'owner' && !u.approved);
+                document.getElementById('stat-pending').textContent = pendingOwners.length + pendingTurfs.length;
+
+                document.getElementById('pending-turfs-list').innerHTML = pendingTurfs.length
+                    ? pendingTurfs.map(t => `
+                    <div class="pending-card" style="flex-direction:column;align-items:flex-start;gap:12px;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;flex-wrap:wrap;gap:12px;">
+                            <div style="flex:1;min-width:200px;">
+                                <div style="font-weight:800;font-size:1rem;margin-bottom:4px;">${t.name}
+                                    <span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(255,170,0,0.15);color:#ffaa00;margin-left:6px;">⏳ PENDING</span>
+                                </div>
+                                <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.7;">
+                                    📍 ${t.location || '—'} &nbsp;|&nbsp;
+                                    ⚽ ${Array.isArray(t.sport) ? t.sport.join(', ') : (t.sport || '—')} &nbsp;|&nbsp;
+                                    💰 ₹${t.price || '—'}/hr &nbsp;|&nbsp;
+                                    👤 Owner: <span style="font-family:monospace;color:var(--primary);">${t.ownerId || '—'}</span>
+                                </div>
+                                ${t.description ? `<div style="font-size:0.8rem;color:var(--text-dim);margin-top:4px;">${t.description.slice(0,120)}${t.description.length > 120 ? '…' : ''}</div>` : ''}
+                                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">
+                                    ⏰ ${t.openTime || '06:00'} – ${t.closeTime || '22:00'} &nbsp;|&nbsp;
+                                    🏢 ${t.courts || 1} court(s) &nbsp;|&nbsp;
+                                    🕐 ${Array.isArray(t.slots) ? t.slots.length : 0} slots &nbsp;|&nbsp;
+                                    📞 ${t.phone || '—'}
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;flex-shrink:0;">
+                                <button class="btn btn-primary" style="padding:9px 18px;font-size:0.78rem;white-space:nowrap;"
+                                    onclick="toggleTurfApproval('${t._id || t.id}', true, this)">✓ Approve Turf</button>
+                                <button class="btn btn-outline" style="padding:9px 14px;font-size:0.78rem;border-color:#ff4444;color:#ff4444;white-space:nowrap;"
+                                    onclick="toggleTurfApproval('${t._id || t.id}', false, this)">✕ Reject</button>
+                            </div>
+                        </div>
+                    </div>`).join('')
+                    : '<div style="text-align:center;padding:40px;color:var(--text-dim);">No pending turfs! All submissions reviewed ✅</div>';
+
+            } catch (e) {
+                console.error('Turfs load error:', e);
+                document.getElementById('Arenas-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#ff4444;">Could not load arenas.</td></tr>';
+                document.getElementById('pending-turfs-list').innerHTML = '<div style="text-align:center;padding:40px;color:#ff4444;">Could not load pending turfs.</div>';
+            }
+
+            // ── Bookings ──
+            try {
+                const bookRes = await fetch('/api/bookings', { headers });
+                allBookings = await bookRes.json();
+
+                document.getElementById('stat-bookings').textContent = Array.isArray(allBookings) ? allBookings.length : 0;
+
+                document.getElementById('bookings-tbody').innerHTML = Array.isArray(allBookings) && allBookings.length ? allBookings.map(b => `
+                    <tr>
+                        <td><span style="font-family:monospace;font-size:0.75rem;color:var(--primary);">${b.bookingId}</span></td>
+                        <td style="font-weight:700;">${b.name}</td>
+                        <td>${b.venue}</td>
+                        <td style="color:var(--text-muted);">${b.date}</td>
+                        <td>${b.slot}</td>
+                        <td><span style="color:#00cc88;font-weight:700;font-size:0.8rem;">✓ ${b.status}</span></td>
+                    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">No bookings yet</td></tr>';
+            } catch (e) {
+                console.error('Bookings load error:', e);
+                document.getElementById('bookings-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#ff4444;">Could not load bookings.</td></tr>';
+            }
+
+            // ── Games ──
+            try {
+                const gamesRes = await fetch('/api/games');
+                allGames = await gamesRes.json();
+
+                document.getElementById('games-tbody').innerHTML = Array.isArray(allGames) && allGames.length ? allGames.map(g => `
+                    <tr>
+                        <td><span style="font-family:monospace;font-size:0.75rem;color:var(--primary);">${g.gameId}</span></td>
+                        <td style="font-weight:700;">${g.sport}</td>
+                        <td>${g.venue}</td>
+                        <td style="color:var(--text-muted);">${g.time ? new Date(g.time).toLocaleDateString('en-IN') : '—'}</td>
+                        <td>${g.players}</td>
+                        <td style="color:var(--text-muted);font-size:0.8rem;">${g.hostedBy}</td>
+                    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-dim);">No games yet</td></tr>';
+            } catch (e) {
+                console.error('Games load error:', e);
+                document.getElementById('games-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#ff4444;">Could not load games.</td></tr>';
+            }
+            // ── Final Render of Integrated Views ──
+            const finalOwners = Array.isArray(allUsers) ? allUsers.filter(u => u.role === 'owner') : [];
+            buildOwnersView(finalOwners, allArenas, allBookings);
+        }
+
+        function buildOwnersView(owners, arenas, bookings) {
+            const grid = document.getElementById('owners-grid');
+
+            if (!owners.length) {
+                grid.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-dim);">No owners registered yet da!</div>';
+                return;
+            }
+
+            grid.innerHTML = owners.map(owner => {
+                // Turfs for this owner
+                const ownerTurfs = Array.isArray(arenas) ? arenas.filter(a => a.ownerId === owner.uniqueId || a.ownerId === owner._id) : [];
+
+                // Bookings for this owner's turfs
+                const turfNames = ownerTurfs.map(t => t.name);
+                const ownerBookings = Array.isArray(bookings) ? bookings.filter(b => turfNames.includes(b.venue)) : [];
+                
+                const approvedTurfs = ownerTurfs.filter(t => t.approved).length;
+                const pendingTurfs = ownerTurfs.filter(t => !t.approved).length;
+
+                const initials = (owner.name || owner.username || 'O').slice(0, 2).toUpperCase();
+                const joined = owner.createdAt ? new Date(owner.createdAt).toLocaleDateString('en-IN') : '—';
+
+                return `
+                <div class="owner-detail-card">
+                    <div class="owner-header">
+                        <div class="owner-avatar">${initials}</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:900;font-size:1rem;">${owner.name || owner.username}
+                                ${!owner.approved ? '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(255,165,0,0.15);color:#ffaa00;margin-left:6px;">PENDING</span>' : '<span style="font-size:0.65rem;padding:2px 8px;border-radius:6px;background:rgba(0,204,136,0.15);color:#00cc88;margin-left:6px;">APPROVED</span>'}
+                            </div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">@${owner.username || '—'} • 📍 ${owner.location || '—'}</div>
+                            <div style="font-family:monospace;font-size:0.7rem;color:var(--primary);margin-top:3px;">${owner.uniqueId} • Joined ${joined}</div>
+                        </div>
+                        ${!owner.approved ? `<button class="btn btn-primary" style="padding:8px 16px;font-size:0.75rem;" onclick="approveOwner('${owner.uniqueId}', this)">✓ Approve Owner</button>` : ''}
+                    </div>
+
+                    <div class="owner-stats-row">
+                        <div class="owner-stat">
+                            <div style="font-size:1.5rem;font-weight:900;color:var(--primary);">${ownerTurfs.length}</div>
+                            <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;">Total Turfs</div>
+                        </div>
+                        <div class="owner-stat">
+                            <div style="font-size:1.5rem;font-weight:900;color:#00cc88;">${approvedTurfs}</div>
+                            <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;">Active</div>
+                        </div>
+                        <div class="owner-stat">
+                            <div style="font-size:1.5rem;font-weight:900;color:#ffaa00;">${pendingTurfs}</div>
+                            <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;">Pending</div>
+                        </div>
+                        <div class="owner-stat">
+                            <div style="font-size:1.5rem;font-weight:900;color:#1dc1d3;">${ownerBookings.length}</div>
+                            <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;">Bookings</div>
+                        </div>
+                    </div>
+
+                    ${ownerTurfs.length > 0 ? `
+                    <div class="owner-turfs-list">
+                        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:10px;font-weight:700;">Turfs & Bookings</div>
+                        ${ownerTurfs.map(turf => {
+                            const turfBookingCount = Array.isArray(bookings) ? bookings.filter(b => b.venue === turf.name).length : 0;
+                            return `
+                            <div class="turf-row">
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:700;font-size:0.88rem;">${turf.name}</div>
+                                    <div style="font-size:0.75rem;color:var(--text-muted);">📍 ${turf.location}</div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;">
+                                    <span style="font-size:0.75rem;background:rgba(29,193,211,0.12);color:#1dc1d3;padding:3px 10px;border-radius:8px;font-weight:700;">${turfBookingCount} bookings</span>
+                                    <span style="font-size:0.7rem;padding:3px 8px;border-radius:8px;background:${turf.approved ? '#00cc8822' : '#ffaa0022'};color:${turf.approved ? '#00cc88' : '#ffaa00'};">${turf.approved ? '✓ Live' : '⏳ Pending'}</span>
+                                    ${!turf.approved ? `<button style="padding:3px 10px;font-size:0.68rem;border-radius:6px;border:1px solid #00cc88;color:#00cc88;background:transparent;cursor:pointer;" onclick="toggleTurfApproval('${turf._id || turf.id}', true, this)">Approve</button>` : `<button style="padding:3px 10px;font-size:0.68rem;border-radius:6px;border:1px solid #ff4444;color:#ff4444;background:transparent;cursor:pointer;" onclick="toggleTurfApproval('${turf._id || turf.id}', false, this)">Reject</button>`}
+                                </div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    ` : `<div style="padding:14px 20px;font-size:0.82rem;color:var(--text-dim);border-top:1px solid var(--border-subtle);">No turfs listed yet da.</div>`}
+                </div>`;
+            }).join('');
+        }
+
+        async function approveOwner(uniqueId, btn) {
+            btn.textContent = 'Approving...'; btn.disabled = true;
+            try {
+                const res = await fetch('/api/admin/approve-owner/' + uniqueId, { method: 'POST', headers });
+                const data = await res.json();
+                if (data.success) { btn.textContent = '✓ Approved!'; btn.style.background = '#00cc88'; loadAll(); }
+            } catch (e) { btn.textContent = '✓ Approve'; btn.disabled = false; }
+        }
+
+        async function toggleTurfApproval(id, approved, btn) {
+            btn.textContent = '...'; btn.disabled = true;
+            try {
+                const res = await fetch('/api/turfs/' + id, { method: 'PUT', headers, body: JSON.stringify({ approved }) });
+                const data = await res.json();
+                if (data.success) { loadAll(); }
+                else { btn.textContent = approved ? 'Approve' : 'Reject'; btn.disabled = false; }
+            } catch (e) { btn.textContent = 'Failed'; btn.disabled = false; }
+        }
+
+        function switchTab(tab) {
+            const allTabs = ['owners', 'users', 'pending', 'arenas', 'bookings', 'games'];
+            document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', allTabs[i] === tab));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function logout() {
+            localStorage.removeItem('playnow_token');
+            localStorage.removeItem('playnow_user');
+            window.location.href = 'admin-login.html';
+        }
+
+        loadAll();
+    </script>
+</body>
+</html>

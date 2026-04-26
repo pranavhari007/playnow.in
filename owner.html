@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard | Play Now</title>
+    <meta name="description" content="PlayNow Owner Portal — register and manage your sports venue, track bookings and approval status.">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── Notification Banners ── */
+        .notif-banner {
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            animation: slideDown 0.4s ease;
+        }
+        .notif-pending  { background: rgba(255,170,0,0.10); border: 1px solid rgba(255,170,0,0.35); }
+        .notif-approved { background: rgba(0,204,136,0.10); border: 1px solid rgba(0,204,136,0.35); }
+        .notif-icon  { font-size: 1.8rem; flex-shrink: 0; line-height: 1; }
+        .notif-body  { flex: 1; }
+        .notif-title { font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; }
+        .notif-pending  .notif-title { color: #ffaa00; }
+        .notif-approved .notif-title { color: #00cc88; }
+        .notif-text  { font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; }
+        .notif-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.1rem; padding: 0 4px; flex-shrink: 0; align-self: flex-start; }
+        @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ── Stat Cards ── */
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+
+        /* ── Turf Cards ── */
+        .turf-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: border-color 0.25s, transform 0.25s;
+        }
+        .turf-card:hover { border-color: rgba(193,253,51,0.25); transform: translateY(-2px); }
+
+        .turf-card-header { padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+        .turf-details-bar {
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid var(--border-subtle);
+            display: flex; gap: 20px; flex-wrap: wrap; align-items: center; justify-content: space-between;
+        }
+        .turf-detail-item { font-size: 0.78rem; color: var(--text-muted); }
+
+        .status-badge {
+            padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .status-pending  { background: rgba(255,170,0,0.14); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
+        .status-approved { background: rgba(0,204,136,0.14); color: #00cc88; border: 1px solid rgba(0,204,136,0.3); }
+
+        /* ── Modal Overlay ── */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(14px);
+            z-index: 2000; display: none;
+            align-items: flex-start; justify-content: center;
+            padding: 30px 16px; overflow-y: auto;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 28px; padding: 36px;
+            max-width: 600px; width: 100%; position: relative;
+            animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            margin: auto;
+        }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.9) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
+        /* ── Modal Step Progress ── */
+        .step-progress { display: flex; gap: 6px; margin-bottom: 22px; }
+        .step-bar { height: 4px; border-radius: 2px; background: var(--border-subtle); flex: 1; transition: background 0.3s; }
+        .step-bar.done { background: var(--primary); }
+
+        /* ── Modal Steps ── */
+        .modal-step { display: none; }
+        .modal-step.active { display: block; }
+
+        /* ── Form Elements ── */
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; margin-bottom: 7px;
+            font-size: 0.75rem; color: var(--text-muted); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%; padding: 12px 16px; border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255,255,255,0.04); color: #fff; font-size: 0.9rem;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none; border-color: var(--primary);
+            background: rgba(193,253,51,0.04);
+        }
+        .form-group textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+        .form-group select option { background: #111; }
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* ── Chips ── */
+        .chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+        .sport-chip {
+            padding: 8px 16px; border: 1.5px solid var(--border-bright); border-radius: 100px;
+            cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
+            transition: var(--transition-fast);
+        }
+        .sport-chip.selected { background: var(--primary); color: var(--bg-dark); border-color: var(--primary); }
+
+        .slot-chip {
+            padding: 7px 13px; border: 1.5px solid var(--border-bright); border-radius: 8px;
+            cursor: pointer; font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+            transition: var(--transition-fast);
+        }
+        .slot-chip.selected { background: rgba(193,253,51,0.12); border-color: var(--primary); color: var(--primary); }
+
+        .amenity-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 8px 14px; border: 1.5px solid var(--border-bright); border-radius: 10px;
+            cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
+            transition: var(--transition-fast);
+        }
+        .amenity-chip.selected { background: rgba(29,193,211,0.1); border-color: #1dc1d3; color: #1dc1d3; }
+
+        /* ── Image Preview ── */
+        .img-preview {
+            width: 100%; height: 150px; border-radius: 12px; object-fit: cover;
+            margin-top: 10px; display: none;
+            border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.03);
+        }
+        .img-preview.visible { display: block; }
+
+        /* ── Photo Thumbs ── */
+        .photo-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .photo-thumb { position: relative; width: 80px; height: 80px; }
+        .photo-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid var(--border-subtle); }
+        .photo-thumb .rm-photo {
+            position: absolute; top: -6px; right: -6px;
+            background: #ff4444; border: none; border-radius: 50%;
+            width: 20px; height: 20px; font-size: 0.65rem; color: #fff;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .add-photo-btn {
+            width: 80px; height: 80px; border: 2px dashed var(--border-bright); border-radius: 10px;
+            background: transparent; color: var(--text-muted); cursor: pointer;
+            font-size: 1.5rem; display: flex; align-items: center; justify-content: center;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .add-photo-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* ── Modal Nav ── */
+        .modal-nav { display: flex; gap: 12px; margin-top: 24px; }
+        .btn-back {
+            background: transparent; border: 1.5px solid var(--border-bright);
+            color: var(--text-muted); padding: 12px 20px; border-radius: 12px;
+            cursor: pointer; font-weight: 700; font-size: 0.85rem; flex: 1;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .btn-back:hover { border-color: var(--text-muted); color: var(--text-main); }
+        .btn-next { flex: 2; }
+
+        /* ── Summary Box ── */
+        .summary-box {
+            background: rgba(193,253,51,0.04); border: 1px solid rgba(193,253,51,0.15);
+            border-radius: 14px; padding: 16px; margin-top: 8px;
+            font-size: 0.83rem; line-height: 2;
+        }
+
+        /* ── Empty State ── */
+        .empty-state { text-align: center; padding: 80px 30px; color: var(--text-dim); }
+        .empty-state .ei { font-size: 3.5rem; margin-bottom: 16px; display: block; }
+        .empty-state h3 { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 8px; }
+
+        /* ── Error Msg ── */
+        .error-msg { color: #ff4444; font-size: 0.85rem; margin-top: 8px; display: none; }
+
+        @media (max-width: 600px) {
+            .modal { padding: 24px 18px; border-radius: 20px; }
+            .form-grid-2 { grid-template-columns: 1fr; }
+            .turf-card-header { flex-direction: column; }
+        }
+    </style>
+</head>
+
+<body>
+    <header id="navbar-container"></header>
+
+    <main style="padding-top:100px;min-height:100vh;">
+        <div class="container" style="padding:40px 0 80px;">
+
+            <!-- Header -->
+            <div style="margin-bottom:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;">
+                <div>
+                    <span class="badge badge-primary" style="margin-bottom:10px;">Owner Portal</span>
+                    <h1 style="font-size:2.5rem;">My <span class="gradient-text">Venues</span></h1>
+                    <p style="color:var(--text-muted);margin-top:6px;font-size:0.9rem;" id="owner-welcome">Loading...</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddTurfModal()" style="padding:14px 28px;font-size:0.9rem;">+ Add New Turf</button>
+            </div>
+
+            <!-- Notification banners (injected dynamically) -->
+            <div id="notifications-container"></div>
+
+            <!-- Stats -->
+            <div style="margin-bottom:28px;">
+                <h3 style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">Business Insights</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;">
+                    <div class="stat-card" style="border-left:4px solid var(--primary);">
+                        <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Total Venues</div>
+                        <div style="font-size:2.2rem;font-weight:900;color:var(--text-main);margin-top:4px;" id="stat-total">—</div>
+                        <div style="font-size:0.7rem;color:var(--primary);margin-top:6px;">All registered</div>
+                    </div>
+                    <div class="stat-card" style="border-left:4px solid #00cc88;">
+                        <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Live Arenas</div>
+                        <div style="font-size:2.2rem;font-weight:900;color:#00cc88;margin-top:4px;" id="stat-approved">—</div>
+                        <div style="font-size:0.7rem;color:#00cc88;margin-top:6px;">▲ Platform Active</div>
+                    </div>
+                    <div class="stat-card" style="border-left:4px solid #ffaa00;">
+                        <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Pending Approval</div>
+                        <div style="font-size:2.2rem;font-weight:900;color:#ffaa00;margin-top:4px;" id="stat-pending">—</div>
+                        <div style="font-size:0.7rem;color:#ffaa00;margin-top:6px;">Awaiting review</div>
+                    </div>
+                    <div class="stat-card" style="border-left:4px solid #1dc1d3;">
+                        <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Total Bookings</div>
+                        <div style="font-size:2.2rem;font-weight:900;color:#1dc1d3;margin-top:4px;" id="stat-bookings">—</div>
+                        <div style="font-size:0.7rem;color:#1dc1d3;margin-top:6px;">▲ Customer Growth</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Turf List -->
+            <h3 style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">Your Venues</h3>
+            <div id="Arenas-list" style="display:flex;flex-direction:column;gap:16px;">
+                <div style="text-align:center;padding:60px;color:var(--text-dim);">Loading your venues...</div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ═══════════════════════════════════════════════
+         TURF REGISTRATION MODAL — 4-step wizard
+    ═══════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="turf-modal">
+        <div class="modal">
+
+            <button onclick="closeTurfModal()" style="position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;" title="Close">✕</button>
+
+            <div style="margin-bottom:6px;">
+                <span class="badge badge-primary" id="modal-step-badge">Step 1 of 4</span>
+            </div>
+            <h2 style="font-size:1.6rem;margin-bottom:4px;" id="modal-title">Register Your Turf</h2>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:18px;" id="modal-subtitle">Venue basic information</p>
+
+            <!-- Progress bars -->
+            <div class="step-progress">
+                <div class="step-bar done" id="sbar-1"></div>
+                <div class="step-bar" id="sbar-2"></div>
+                <div class="step-bar" id="sbar-3"></div>
+                <div class="step-bar" id="sbar-4"></div>
+            </div>
+
+            <input type="hidden" id="turf-id">
+
+            <!-- ── STEP 1: Basic Info ─────────────────────────────── -->
+            <div class="modal-step active" id="mstep-1">
+                <div class="form-group">
+                    <label>Venue / Turf Name *</label>
+                    <input type="text" id="turf-name" placeholder="e.g. Elite Sports Arena">
+                </div>
+                <div class="form-group">
+                    <label>City / Area *</label>
+                    <input type="text" id="turf-location" placeholder="e.g. Trichy, Chennai, Coimbatore">
+                </div>
+                <div class="form-group">
+                    <label>Full Address</label>
+                    <textarea id="turf-address" placeholder="Street, landmark, pin code..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="turf-description" placeholder="Surface type, unique features, any special rules..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Sports Available *</label>
+                    <div class="chip-group" id="sports-chips">
+                        <span class="sport-chip" data-sport="Football">⚽ Football</span>
+                        <span class="sport-chip" data-sport="Cricket">🏏 Cricket</span>
+                        <span class="sport-chip" data-sport="Box Cricket">📦 Box Cricket</span>
+                        <span class="sport-chip" data-sport="Badminton">🏸 Badminton</span>
+                        <span class="sport-chip" data-sport="Basketball">🏀 Basketball</span>
+                        <span class="sport-chip" data-sport="Tennis">🎾 Tennis</span>
+                        <span class="sport-chip" data-sport="Volleyball">🏐 Volleyball</span>
+                        <span class="sport-chip" data-sport="Kabaddi">🤼 Kabaddi</span>
+                        <span class="sport-chip" data-sport="Table Tennis">🏓 Table Tennis</span>
+                        <span class="sport-chip" data-sport="Handball">🤾 Handball</span>
+                    </div>
+                </div>
+                <div id="err-s1" class="error-msg"></div>
+                <div class="modal-nav">
+                    <button class="btn btn-primary btn-next" onclick="nextStep(1)">Next: Timings & Pricing →</button>
+                </div>
+            </div>
+
+            <!-- ── STEP 2: Timings, Slots & Pricing ──────────────── -->
+            <div class="modal-step" id="mstep-2">
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Opening Time *</label>
+                        <input type="time" id="turf-open-time" value="06:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Closing Time *</label>
+                        <input type="time" id="turf-close-time" value="22:00">
+                    </div>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Price per Hour (₹) *</label>
+                        <input type="number" id="turf-price" placeholder="e.g. 500" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Courts</label>
+                        <input type="number" id="turf-courts" placeholder="1" min="1" value="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Available Booking Slots <span style="font-weight:400;text-transform:none;color:var(--text-dim);">(select all that apply)</span></label>
+                    <div class="chip-group" id="slots-chips">
+                        <span class="slot-chip" data-slot="06:00 AM">06:00 AM</span>
+                        <span class="slot-chip" data-slot="07:00 AM">07:00 AM</span>
+                        <span class="slot-chip" data-slot="08:00 AM">08:00 AM</span>
+                        <span class="slot-chip" data-slot="09:00 AM">09:00 AM</span>
+                        <span class="slot-chip" data-slot="10:00 AM">10:00 AM</span>
+                        <span class="slot-chip" data-slot="11:00 AM">11:00 AM</span>
+                        <span class="slot-chip" data-slot="12:00 PM">12:00 PM</span>
+                        <span class="slot-chip" data-slot="01:00 PM">01:00 PM</span>
+                        <span class="slot-chip" data-slot="02:00 PM">02:00 PM</span>
+                        <span class="slot-chip" data-slot="03:00 PM">03:00 PM</span>
+                        <span class="slot-chip" data-slot="04:00 PM">04:00 PM</span>
+                        <span class="slot-chip" data-slot="05:00 PM">05:00 PM</span>
+                        <span class="slot-chip" data-slot="06:00 PM">06:00 PM</span>
+                        <span class="slot-chip" data-slot="07:00 PM">07:00 PM</span>
+                        <span class="slot-chip" data-slot="08:00 PM">08:00 PM</span>
+                        <span class="slot-chip" data-slot="09:00 PM">09:00 PM</span>
+                        <span class="slot-chip" data-slot="10:00 PM">10:00 PM</span>
+                    </div>
+                </div>
+                <div id="err-s2" class="error-msg"></div>
+                <div class="modal-nav">
+                    <button class="btn-back" onclick="goModalStep(1)">← Back</button>
+                    <button class="btn btn-primary btn-next" onclick="nextStep(2)">Next: Photos & Amenities →</button>
+                </div>
+            </div>
+
+            <!-- ── STEP 3: Photos & Amenities ────────────────────── -->
+            <div class="modal-step" id="mstep-3">
+                <div class="form-group">
+                    <label>Primary Photo URL</label>
+                    <input type="url" id="turf-image" placeholder="https://example.com/photo.jpg (optional)" oninput="previewImage(this.value)">
+                    <img id="img-preview" class="img-preview" alt="Venue preview photo">
+                </div>
+                <div class="form-group">
+                    <label>Additional Photos <span style="font-weight:400;text-transform:none;color:var(--text-dim);">(optional — paste URL & click Add)</span></label>
+                    <div style="display:flex;gap:8px;margin-bottom:8px;">
+                        <input type="url" id="extra-photo-url" placeholder="https://example.com/photo2.jpg" 
+                            style="flex:1;padding:10px 14px;border-radius:8px;border:1px solid var(--border-subtle);background:rgba(255,255,255,0.04);color:#fff;font-size:0.88rem;"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); addExtraPhoto(); }">
+                        <button onclick="addExtraPhoto()" type="button" style="padding:10px 18px;border-radius:8px;border:1.5px solid var(--primary);background:transparent;color:var(--primary);cursor:pointer;font-weight:700;white-space:nowrap;font-size:0.82rem;">+ Add</button>
+                    </div>
+                    <div class="photo-thumbs" id="extra-photos-container"></div>
+                </div>
+                <div class="form-group">
+                    <label>Amenities & Facilities</label>
+                    <div class="chip-group" id="amenities-chips">
+                        <span class="amenity-chip" data-amenity="Parking">🚗 Parking</span>
+                        <span class="amenity-chip" data-amenity="Changing Rooms">👕 Changing Rooms</span>
+                        <span class="amenity-chip" data-amenity="Washrooms">🚽 Washrooms</span>
+                        <span class="amenity-chip" data-amenity="Floodlights">💡 Floodlights</span>
+                        <span class="amenity-chip" data-amenity="Cafeteria">☕ Cafeteria</span>
+                        <span class="amenity-chip" data-amenity="First Aid">🩺 First Aid</span>
+                        <span class="amenity-chip" data-amenity="Wi-Fi">📶 Wi-Fi</span>
+                        <span class="amenity-chip" data-amenity="Equipment Rental">🏑 Equipment Rental</span>
+                        <span class="amenity-chip" data-amenity="Spectator Area">👀 Spectator Area</span>
+                        <span class="amenity-chip" data-amenity="Security">🔒 Security</span>
+                        <span class="amenity-chip" data-amenity="CCTV">📷 CCTV</span>
+                        <span class="amenity-chip" data-amenity="Drinking Water">💧 Drinking Water</span>
+                    </div>
+                </div>
+                <div id="err-s3" class="error-msg"></div>
+                <div class="modal-nav">
+                    <button class="btn-back" onclick="goModalStep(2)">← Back</button>
+                    <button class="btn btn-primary btn-next" onclick="nextStep(3)">Next: Contact Details →</button>
+                </div>
+            </div>
+
+            <!-- ── STEP 4: Contact + Review ───────────────────────── -->
+            <div class="modal-step" id="mstep-4">
+                <div class="form-group">
+                    <label>Contact Phone *</label>
+                    <input type="tel" id="turf-phone" placeholder="+91 XXXXX XXXXX">
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>WhatsApp Number</label>
+                        <input type="tel" id="turf-whatsapp" placeholder="+91 XXXXX XXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label>Booking Email</label>
+                        <input type="email" id="turf-email" placeholder="booking@venue.com">
+                    </div>
+                </div>
+
+                <!-- Review Summary -->
+                <div class="summary-box" id="turf-summary"></div>
+
+                <div id="err-s4" class="error-msg"></div>
+                <div class="modal-nav">
+                    <button class="btn-back" onclick="goModalStep(3)">← Back</button>
+                    <button class="btn btn-primary btn-next" onclick="saveTurf()" id="save-btn">🚀 Submit for Approval</button>
+                </div>
+                <p style="font-size:0.73rem;color:var(--text-dim);text-align:center;margin-top:12px;">
+                    ⏳ Your turf will be reviewed by the PlayNow team before going live. Usually 24–48 hours.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+        const token = localStorage.getItem('playnow_token');
+        const user  = JSON.parse(localStorage.getItem('playnow_user') || '{}');
+
+        if (!token || !user || (user.role !== 'owner' && user.role !== 'admin')) {
+            localStorage.removeItem('playnow_user');
+            localStorage.removeItem('playnow_token');
+            window.location.href = 'auth.html';
+        }
+
+        document.getElementById('owner-welcome').textContent =
+            'Welcome back, ' + (user.name || user.username) + '! 👋';
+
+        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+
+        // ── State ─────────────────────────────────────────────────────
+        let selectedSports    = [];
+        let selectedSlots     = [];
+        let selectedAmenities = [];
+        let extraPhotos       = [];
+        let currentModalStep  = 1;
+        let isEditing         = false;
+
+        // ── Chip Listeners ────────────────────────────────────────────
+        document.querySelectorAll('#sports-chips .sport-chip').forEach(chip => {
+            chip.onclick = () => toggleChip(chip, 'sport', selectedSports);
+        });
+        document.querySelectorAll('#slots-chips .slot-chip').forEach(chip => {
+            chip.onclick = () => toggleChip(chip, 'slot', selectedSlots);
+        });
+        document.querySelectorAll('#amenities-chips .amenity-chip').forEach(chip => {
+            chip.onclick = () => toggleChip(chip, 'amenity', selectedAmenities);
+        });
+
+        function toggleChip(chip, key, arr) {
+            chip.classList.toggle('selected');
+            const val = chip.dataset[key];
+            if (chip.classList.contains('selected')) arr.push(val);
+            else { const i = arr.indexOf(val); if (i > -1) arr.splice(i, 1); }
+        }
+
+        // ── Image Preview ─────────────────────────────────────────────
+        function previewImage(url) {
+            const p = document.getElementById('img-preview');
+            if (url && url.startsWith('http')) {
+                p.src   = url;
+                p.classList.add('visible');
+                p.onerror = () => p.classList.remove('visible');
+            } else {
+                p.classList.remove('visible');
+            }
+        }
+
+        // ── Extra Photos ──────────────────────────────────────────────
+        function addExtraPhoto() {
+            const inp = document.getElementById('extra-photo-url');
+            const url = inp.value.trim();
+            if (!url) return;
+            if (!url.startsWith('http')) {
+                alert('Please enter a valid URL starting with http:// or https://');
+                return;
+            }
+            extraPhotos.push(url); inp.value = '';
+            renderExtraPhotos();
+        }
+        function removePhoto(i) { extraPhotos.splice(i, 1); renderExtraPhotos(); }
+        function renderExtraPhotos() {
+            const c = document.getElementById('extra-photos-container');
+            c.innerHTML = extraPhotos.map((url, i) => `
+                <div class="photo-thumb">
+                    <img src="${url}" onerror="this.parentElement.style.display='none'" alt="venue photo">
+                    <button class="rm-photo" onclick="removePhoto(${i})" title="Remove">✕</button>
+                </div>`).join('') +
+                `<button class="add-photo-btn" onclick="document.getElementById('extra-photo-url').focus()" title="Add photo" type="button">+</button>`;
+        }
+
+        // ── Modal Step Navigation ─────────────────────────────────────
+        const SUBTITLES = [
+            'Venue basic information',
+            'Timings, pricing & booking slots',
+            'Photos & facilities',
+            'Contact details & final review'
+        ];
+
+        function goModalStep(n) {
+            currentModalStep = n;
+            document.querySelectorAll('.modal-step').forEach((s, i) => s.classList.toggle('active', i + 1 === n));
+            document.querySelectorAll('.step-bar').forEach((b, i) => b.classList.toggle('done', i < n));
+            document.getElementById('modal-step-badge').textContent = `Step ${n} of 4`;
+            document.getElementById('modal-subtitle').textContent = SUBTITLES[n - 1];
+            if (n === 4) buildSummary();
+            document.querySelector('.modal').scrollTop = 0;
+        }
+
+        function nextStep(current) {
+            const showErr = (id, msg) => {
+                const el = document.getElementById('err-s' + id);
+                el.textContent = msg; el.style.display = 'block';
+                setTimeout(() => el.style.display = 'none', 3000);
+            };
+            if (current === 1) {
+                if (!document.getElementById('turf-name').value.trim()) return showErr(1, 'Please enter your venue name!');
+                if (!document.getElementById('turf-location').value.trim()) return showErr(1, 'Please enter the location/city!');
+                if (selectedSports.length === 0) return showErr(1, 'Please select at least one sport!');
+            }
+            if (current === 2) {
+                const p = document.getElementById('turf-price').value;
+                if (p === "" || parseFloat(p) <= 0) return showErr(2, 'Please enter a valid price per hour!');
+            }
+            if (current === 3) {
+                const img = document.getElementById('turf-image').value.trim();
+                if (!img) return showErr(3, 'Primary venue photo is compulsory!');
+                if (!img.startsWith('http')) return showErr(3, 'Please enter a valid image URL starting with http!');
+            }
+            goModalStep(current + 1);
+        }
+
+        function buildSummary() {
+            const name    = document.getElementById('turf-name').value;
+            const loc     = document.getElementById('turf-location').value;
+            const price   = document.getElementById('turf-price').value;
+            const open    = document.getElementById('turf-open-time').value;
+            const close   = document.getElementById('turf-close-time').value;
+            const courts  = document.getElementById('turf-courts').value || '1';
+            document.getElementById('turf-summary').innerHTML = `
+                <div style="font-weight:800;font-size:0.92rem;margin-bottom:10px;color:var(--text-main);">📋 Review Your Turf Details</div>
+                <div>🏟️ <span style="color:var(--text-muted);">Name:</span> <strong>${name}</strong></div>
+                <div>📍 <span style="color:var(--text-muted);">Location:</span> <strong>${loc}</strong></div>
+                <div>⚽ <span style="color:var(--text-muted);">Sports:</span> <strong>${selectedSports.join(', ') || '—'}</strong></div>
+                <div>💰 <span style="color:var(--text-muted);">Price:</span> <strong>₹${price}/hr</strong></div>
+                <div>⏰ <span style="color:var(--text-muted);">Timings:</span> <strong>${open} – ${close}</strong></div>
+                <div>🏢 <span style="color:var(--text-muted);">Courts:</span> <strong>${courts}</strong></div>
+                <div>🕐 <span style="color:var(--text-muted);">Slots:</span> <strong>${selectedSlots.length} selected</strong></div>
+                <div>🎯 <span style="color:var(--text-muted);">Amenities:</span> <strong>${selectedAmenities.length > 0 ? selectedAmenities.join(', ') : 'None selected'}</strong></div>
+            `;
+        }
+
+        // ── Open / Close Modal ────────────────────────────────────────
+        function openAddTurfModal() {
+            isEditing = false;
+            document.getElementById('modal-title').textContent  = 'Register Your Turf';
+            document.getElementById('save-btn').textContent     = '🚀 Submit for Approval';
+            document.getElementById('turf-id').value           = '';
+
+            // Reset all fields
+            ['turf-name','turf-location','turf-address','turf-description',
+             'turf-image','turf-phone','turf-whatsapp','turf-email'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('turf-open-time').value  = '06:00';
+            document.getElementById('turf-close-time').value = '22:00';
+            document.getElementById('turf-price').value      = '';
+            document.getElementById('turf-courts').value     = '1';
+            document.getElementById('img-preview').classList.remove('visible');
+
+            // Reset selections
+            selectedSports = []; selectedSlots = []; selectedAmenities = []; extraPhotos = [];
+            document.querySelectorAll('.sport-chip, .slot-chip, .amenity-chip').forEach(c => c.classList.remove('selected'));
+            renderExtraPhotos();
+            goModalStep(1);
+            document.getElementById('turf-modal').classList.add('open');
+            setTimeout(() => {
+                const inp = document.getElementById('turf-name');
+                if (inp) inp.focus();
+            }, 150);
+        }
+
+        function openEditModal(t) {
+            isEditing = true;
+            document.getElementById('modal-title').textContent = 'Edit Turf Details';
+            document.getElementById('save-btn').textContent    = '💾 Save Changes';
+            document.getElementById('turf-id').value          = t._id || t.id;
+
+            document.getElementById('turf-name').value        = t.name        || '';
+            document.getElementById('turf-location').value   = t.location   || '';
+            document.getElementById('turf-address').value    = t.address     || '';
+            document.getElementById('turf-description').value= t.description|| '';
+            document.getElementById('turf-open-time').value  = t.openTime   || '06:00';
+            document.getElementById('turf-close-time').value = t.closeTime  || '22:00';
+            document.getElementById('turf-price').value      = t.price       || '';
+            document.getElementById('turf-courts').value     = t.courts      || 1;
+            document.getElementById('turf-image').value      = t.image       || '';
+            document.getElementById('turf-phone').value      = t.phone       || '';
+            document.getElementById('turf-whatsapp').value   = t.whatsapp   || '';
+            document.getElementById('turf-email').value      = t.contactEmail|| '';
+            previewImage(t.image || '');
+
+            selectedSports    = Array.isArray(t.sport)     ? [...t.sport]     : [];
+            selectedSlots     = Array.isArray(t.slots)     ? [...t.slots]     : [];
+            selectedAmenities = Array.isArray(t.amenities) ? [...t.amenities] : [];
+            extraPhotos       = Array.isArray(t.images)    ? [...t.images]    : [];
+
+            document.querySelectorAll('.sport-chip').forEach(c =>
+                c.classList.toggle('selected', selectedSports.includes(c.dataset.sport)));
+            document.querySelectorAll('.slot-chip').forEach(c =>
+                c.classList.toggle('selected', selectedSlots.includes(c.dataset.slot)));
+            document.querySelectorAll('.amenity-chip').forEach(c =>
+                c.classList.toggle('selected', selectedAmenities.includes(c.dataset.amenity)));
+
+            renderExtraPhotos();
+            goModalStep(1);
+            document.getElementById('turf-modal').classList.add('open');
+            setTimeout(() => {
+                const inp = document.getElementById('turf-name');
+                if (inp) inp.focus();
+            }, 150);
+        }
+
+        function closeTurfModal() { document.getElementById('turf-modal').classList.remove('open'); }
+
+        // ── Save / Submit Turf ────────────────────────────────────────
+        async function saveTurf() {
+            const id    = document.getElementById('turf-id').value;
+            const phone = document.getElementById('turf-phone').value.trim();
+            const img   = document.getElementById('turf-image').value.trim();
+            const errEl = document.getElementById('err-s4');
+            errEl.style.display = 'none';
+
+            if (!img) { errEl.textContent = 'Primary photo is compulsory!'; errEl.style.display = 'block'; return; }
+            if (!phone) { errEl.textContent = 'Contact phone number is required!'; errEl.style.display = 'block'; return; }
+
+            const payload = {
+                name:         document.getElementById('turf-name').value.trim(),
+                sport:        selectedSports,
+                location:     document.getElementById('turf-location').value.trim(),
+                address:      document.getElementById('turf-address').value.trim(),
+                description:  document.getElementById('turf-description').value.trim(),
+                openTime:     document.getElementById('turf-open-time').value,
+                closeTime:    document.getElementById('turf-close-time').value,
+                price:        parseFloat(document.getElementById('turf-price').value),
+                courts:       parseInt(document.getElementById('turf-courts').value) || 1,
+                image:        document.getElementById('turf-image').value.trim(),
+                images:       extraPhotos,
+                slots:        selectedSlots,
+                amenities:    selectedAmenities,
+                phone,
+                whatsapp:     document.getElementById('turf-whatsapp').value.trim(),
+                contactEmail: document.getElementById('turf-email').value.trim()
+            };
+
+            const btn = document.getElementById('save-btn');
+            btn.disabled = true; btn.textContent = 'Saving...';
+
+            try {
+                const url    = id ? `/api/turfs/${id}` : '/api/turfs';
+                const method = id ? 'PUT' : 'POST';
+                const res    = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+                const data   = await res.json();
+
+                if (!res.ok) {
+                    errEl.textContent  = data.error || 'Failed to save turf!';
+                    errEl.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = isEditing ? '💾 Save Changes' : '🚀 Submit for Approval';
+                    return;
+                }
+                closeTurfModal();
+                loadDashboard();
+            } catch (e) {
+                errEl.textContent  = 'Network error — make sure the server is running!';
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = isEditing ? '💾 Save Changes' : '🚀 Submit for Approval';
+            }
+        }
+
+        // ── Notification Banners ──────────────────────────────────────
+        function showNotifications(turfs) {
+            const container = document.getElementById('notifications-container');
+            const pending   = turfs.filter(t => !t.approved);
+            const approved  = turfs.filter(t =>  t.approved);
+            let html = '';
+
+            if (pending.length > 0) {
+                const names = pending.map(t => `<strong>${t.name}</strong>`).join(', ');
+                html += `
+                    <div class="notif-banner notif-pending">
+                        <div class="notif-icon">⏳</div>
+                        <div class="notif-body">
+                            <div class="notif-title">Turf Approval Pending</div>
+                            <div class="notif-text">
+                                ${pending.length === 1
+                                    ? `${names} is currently under review by the PlayNow team.`
+                                    : `${names} are currently under review by the PlayNow team.`}
+                                Your turf will go live on the platform once approved — usually within 24–48 hours. 🕐
+                            </div>
+                        </div>
+                        <button class="notif-close" onclick="this.closest('.notif-banner').remove()">✕</button>
+                    </div>`;
+            }
+
+            if (approved.length > 0 && pending.length === 0) {
+                html += `
+                    <div class="notif-banner notif-approved">
+                        <div class="notif-icon">🎉</div>
+                        <div class="notif-body">
+                            <div class="notif-title">All Venues Are Live!</div>
+                            <div class="notif-text">
+                                ${approved.length === 1
+                                    ? `<strong>${approved[0].name}</strong> is approved and live on PlayNow!`
+                                    : `All <strong>${approved.length} venues</strong> are approved and visible to players!`}
+                                Players can now discover and book your venue. 🏆
+                            </div>
+                        </div>
+                        <button class="notif-close" onclick="this.closest('.notif-banner').remove()">✕</button>
+                    </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // ── Load Dashboard ────────────────────────────────────────────
+        async function loadDashboard() {
+            try {
+                // Stats
+                const statsRes  = await fetch('/api/owner/stats', { headers });
+                const stats     = await statsRes.json();
+                document.getElementById('stat-bookings').textContent = stats.totalBookings || 0;
+
+                // Turfs (use my-turfs endpoint)
+                const tRes  = await fetch('/api/owner/my-turfs', { headers });
+                const turfs = await tRes.json();
+
+                const total    = Array.isArray(turfs) ? turfs.length : 0;
+                const approved = Array.isArray(turfs) ? turfs.filter(t => t.approved).length  : 0;
+                const pending  = total - approved;
+
+                document.getElementById('stat-total').textContent   = total;
+                document.getElementById('stat-approved').textContent = approved;
+                document.getElementById('stat-pending').textContent  = pending;
+
+                // Notifications on login
+                if (Array.isArray(turfs) && turfs.length > 0) showNotifications(turfs);
+
+                // Render cards
+                const list = document.getElementById('Arenas-list');
+                list.innerHTML = `
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:24px; width:100%;">
+                        <div class="card skeleton-card">
+                            <div class="skeleton" style="height:140px; border-radius:12px; margin-bottom:15px;"></div>
+                            <div class="skeleton" style="height:20px; width:60%; margin-bottom:10px;"></div>
+                            <div class="skeleton" style="height:15px; width:40%;"></div>
+                        </div>
+                    </div>
+                `;
+                
+                if (!turfs || turfs.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <span class="ei">🏟️</span>
+                            <h3>No Venues Registered Yet</h3>
+                            <p style="margin-bottom:24px;font-size:0.9rem;">
+                                Add your first turf and it will appear here after admin approval.
+                            </p>
+                            <button class="btn btn-primary" onclick="openAddTurfModal()">+ Register Your First Turf</button>
+                        </div>`;
+                } else {
+                    list.innerHTML = turfs.map(t => {
+                        const sports    = Array.isArray(t.sport)     ? t.sport.join(', ')     : (t.sport || '—');
+                        const amenities = Array.isArray(t.amenities) ? t.amenities.length : 0;
+                        const slots     = Array.isArray(t.slots)     ? t.slots.length     : 0;
+                        const isOk      = t.approved;
+                        return `
+                            <div class="turf-card">
+                                <div class="turf-card-header">
+                                    <div style="flex:1;min-width:0;">
+                                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+                                            <h3 style="font-size:1.15rem;font-weight:900;">${t.name}</h3>
+                                            <span class="status-badge ${isOk ? 'status-approved' : 'status-pending'}">
+                                                ${isOk ? '✓ Live' : '⏳ Pending Approval'}
+                                            </span>
+                                        </div>
+                                        <p style="font-size:0.84rem;color:var(--text-muted);line-height:1.6;">
+                                            📍 ${t.location}${t.address ? ' — ' + t.address.slice(0,60) + (t.address.length > 60 ? '…' : '') : ''}
+                                            &nbsp;|&nbsp; ⚽ ${sports}
+                                            &nbsp;|&nbsp; 💰 ₹${t.price}/hr
+                                        </p>
+                                        ${!isOk
+                                            ? `<p style="font-size:0.77rem;color:#ffaa00;margin-top:8px;background:rgba(255,170,0,0.08);padding:6px 12px;border-radius:8px;display:inline-block;">
+                                                ⏳ Under admin review — will go live once approved
+                                               </p>`
+                                            : `<p style="font-size:0.77rem;color:#00cc88;margin-top:8px;background:rgba(0,204,136,0.08);padding:6px 12px;border-radius:8px;display:inline-block;">
+                                                🎉 Active — visible to all players on PlayNow!
+                                               </p>`}
+                                    </div>
+                                    <button class="btn btn-outline" style="padding:9px 18px;font-size:0.8rem;flex-shrink:0;"
+                                        onclick='openEditModal(${JSON.stringify(t).replace(/'/g,"&apos;")})'>Edit Details</button>
+                                </div>
+                                <div class="turf-details-bar">
+                                    <span class="turf-detail-item">⏰ ${t.openTime || '06:00'} – ${t.closeTime || '22:00'}</span>
+                                    <span class="turf-detail-item">🕐 ${slots} booking slots</span>
+                                    <span class="turf-detail-item">🏢 ${t.courts || 1} court(s)</span>
+                                    <span class="turf-detail-item">🎯 ${amenities} amenities</span>
+                                    <span class="turf-detail-item">📞 ${t.phone || '—'}</span>
+                                </div>
+                            </div>`;
+                    }).join('');
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('Arenas-list').innerHTML =
+                    `<div style="color:#ff4444;text-align:center;padding:40px;background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.2);border-radius:16px;">
+                        Failed to load data. Make sure the server is running! (<code>node server.js</code>)
+                    </div>`;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('playnow_token');
+            localStorage.removeItem('playnow_user');
+            window.location.href = 'auth.html';
+        }
+
+        // ── Init ──────────────────────────────────────────────────────
+        loadDashboard();
+        renderExtraPhotos();
+
+        // ── Enter Key Support ─────────────────────────────────────────
+        document.getElementById('turf-modal').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                // Ignore if in textarea or already focusing a button
+                if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
+                // Ignore if in extra-photo-url (handled separately)
+                if (e.target.id === 'extra-photo-url') return;
+                
+                e.preventDefault();
+                if (currentModalStep < 4) nextStep(currentModalStep);
+                else saveTurf();
+            }
+        });
+    </script>
+</body>
+
+</html>

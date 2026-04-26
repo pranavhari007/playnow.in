@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Play Now</title>
+    <meta name="description" content="View your bookings, hosted games, and find nearby sports venues on your personalized PlayNow dashboard.">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .tab-btn {
+            padding: 10px 24px;
+            border: 1.5px solid var(--border-bright);
+            border-radius: 100px;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: var(--transition-fast);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: var(--bg-dark);
+            border-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .venue-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+        }
+
+        .venue-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .match-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            transition: var(--transition-smooth);
+        }
+
+        .match-card:hover {
+            border-color: var(--primary);
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #00d4ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: var(--bg-dark);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 480px;
+            width: 100%;
+            position: relative;
+        }
+
+        .host-form input,
+        .host-form select {
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 768px) {
+            
+            #tab-profile > div {
+                grid-template-columns: 1fr !important;
+            }
+            .host-form input, .host-form select { font-size: 16px; }
+        }
+
+        @media (max-width: 480px) {
+            .tab-btn { padding: 7px 12px; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+
+<body>
+    <header id="navbar-container"></header>
+
+    <main style="padding-top: 100px; min-height: 100vh;">
+        <div class="container" style="padding: 40px 0 80px;">
+
+            <!-- Welcome Header -->
+            <div
+                style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;flex-wrap:wrap;gap:16px;">
+                <div>
+                    <span class="badge badge-primary" style="margin-bottom:10px;">Dashboard</span>
+                    <h1 style="font-size:2.5rem;">Vanakkam <span class="gradient-text" id="greeting-name">Player</span>!
+                        👋</h1>
+                    <p id="greeting-location" style="margin-top:8px;">📍 Location loading...</p>
+                </div>
+                <div style="display:flex;gap:12px;">
+                    <button class="btn btn-outline" onclick="openHostModal()"
+                        style="font-size:0.85rem;padding:12px 24px;">🎮 Host a Game</button>
+                    <a href="Arenas.html" class="btn btn-primary" style="font-size:0.85rem;padding:12px 24px;">Book a
+                        Turf</a>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div
+                style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:40px;">
+                <div class="stat-box">
+                    <div style="font-size:2rem;font-weight:900;color:var(--primary);" id="stat-games">0</div>
+                    <div
+                        style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">
+                        Games Played</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size:2rem;font-weight:900;color:var(--primary);">3</div>
+                    <div
+                        style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">
+                        Nearby Venues</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size:2rem;font-weight:900;color:var(--primary);">1</div>
+                    <div
+                        style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">
+                        Stranger Match</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size:2rem;font-weight:900;color:var(--primary);" id="stat-sports">—</div>
+                    <div
+                        style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;">
+                        Fav Sport</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:32px;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+                <button class="tab-btn active" onclick="switchTab('nearby')">📍 Nearby Venues</button>
+                <button class="tab-btn" onclick="switchTab('stranger')">🤝 Stranger Matches</button>
+                <button class="tab-btn" onclick="switchTab('hosted')">🎮 Hosted Games</button>
+                <button class="tab-btn" onclick="switchTab('profile')">👤 My Profile</button>
+            </div>
+
+            <!-- Tab: Nearby Venues -->
+            <div class="tab-content active" id="tab-nearby">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h3 style="font-size:1.3rem;">Nearby Arenas & Courts</h3>
+                    <span id="nearby-location-badge" class="badge badge-outline">📍 Detecting...</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;"
+                    id="nearby-grid">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Tab: Stranger Matches -->
+            <div class="tab-content" id="tab-stranger">
+                <div class="card"
+                    style="background:rgba(193,253,51,0.05);border-color:rgba(193,253,51,0.3);margin-bottom:28px;text-align:center;">
+                    <div style="font-size:2.5rem;margin-bottom:12px;">🤝</div>
+                    <h3 style="margin-bottom:8px;">Stranger Matches</h3>
+                    <p>Every week, nee stranger players koda match poda chance kedaikkum! Auto-match based on your sport
+                        and location.</p>
+                    <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;">
+                        <div style="font-size:0.85rem;color:var(--text-muted);">Next Match Window</div>
+                        <div style="font-size:1.5rem;font-weight:900;color:var(--primary);margin-top:4px;"
+                            id="countdown">Loading...</div>
+                    </div>
+                    <button class="btn btn-primary" style="margin-top:20px;" onclick="joinStrangerMatch()">Join This
+                        Week's Match 🔥</button>
+                </div>
+
+                <h3 style="margin-bottom:20px;font-size:1.2rem;">Players Near You</h3>
+                <div style="display:flex;flex-direction:column;gap:12px;" id="stranger-list">
+                    <!-- Dynamically loaded -->
+                </div>
+            </div>
+
+            <!-- Tab: Hosted Games -->
+            <div class="tab-content" id="tab-hosted">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+                    <h3 style="font-size:1.3rem;">Games You're Hosting</h3>
+                    <button class="btn btn-primary" onclick="openHostModal()"
+                        style="font-size:0.85rem;padding:12px 24px;">+ Host New Game</button>
+                </div>
+                <div id="hosted-list" style="display:flex;flex-direction:column;gap:16px;">
+                    <div style="text-align:center;padding:60px 20px;color:var(--text-dim);">
+                        <div style="font-size:3rem;margin-bottom:16px;">🎮</div>
+                        <p>Innum game host pannala. Ippo host pannu!</p>
+                        <button class="btn btn-outline" onclick="openHostModal()" style="margin-top:20px;">Host a
+                            Game</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Profile -->
+            <div class="tab-content" id="tab-profile">
+                <div style="display:grid;grid-template-columns:1fr 2fr;gap:32px;align-items:start;"
+                    id="profile-content">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Host a Game Modal -->
+    <div class="modal-overlay" id="host-modal">
+        <div class="modal">
+            <button onclick="closeHostModal()"
+                style="position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
+            <h2 style="font-size:1.5rem;margin-bottom:6px;">Host a <span class="gradient-text">Game</span></h2>
+            <p style="margin-bottom:24px;font-size:0.9rem;">Unoda game details enter pannu, players join aavanga!</p>
+            <div class="host-form">
+                <label>Sport</label>
+                <select id="host-sport">
+                    <option>Football</option>
+                    <option>Cricket</option>
+                    <option>Badminton</option>
+                    <option>Basketball</option>
+                    <option>Tennis</option>
+                    <option>Volleyball</option>
+                </select>
+                <label>Venue / Location</label>
+                <input type="text" id="host-venue" placeholder="Venue name or address">
+                <label>Date & Time</label>
+                <input type="datetime-local" id="host-time">
+                <label>Players Needed</label>
+                <input type="number" id="host-players" placeholder="How many players needed?" min="2" max="22">
+                <label>Entry Fee (₹) — 0 for free</label>
+                <input type="number" id="host-fee" placeholder="0" min="0">
+                <label>Description (optional)</label>
+                <input type="text" id="host-desc" placeholder="Any details about the game...">
+                <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="createGame()">Create Game
+                    🎮</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WhatsApp Booking Modal -->
+    <div class="modal-overlay" id="whatsapp-modal">
+        <div class="modal" style="text-align:center;">
+            <button onclick="closeWhatsappModal()"
+                style="position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
+            <div style="font-size:3rem;margin-bottom:16px;">📱</div>
+            <h2 style="font-size:1.5rem;margin-bottom:8px;">Book via <span style="color:#25D366;">WhatsApp</span></h2>
+            <p id="whatsapp-venue-name" style="margin-bottom:20px;"></p>
+            <div class="card"
+                style="background:rgba(37,211,102,0.05);border-color:rgba(37,211,102,0.3);padding:16px;margin-bottom:20px;text-align:left;font-size:0.9rem;line-height:2;">
+                <div>🏟️ <span id="wa-venue"></span></div>
+                <div>📍 <span id="wa-location"></span></div>
+                <div>💰 <span id="wa-price"></span></div>
+            </div>
+            <a id="whatsapp-link" href="#" target="_blank" class="btn btn-primary"
+                style="width:100%;background:#25D366;margin-bottom:12px;">
+                Open WhatsApp to Book 💬
+            </a>
+            <p style="font-size:0.75rem;color:var(--text-dim);">Temporary booking system — direct WhatsApp contact</p>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+        const MOCK_VENUES = [
+            { id: 1, name: "Elite Arena", location: "Thillai Nagar, Trichy", sport: ["Football", "Cricket"], price: 500, rating: 4.8, image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=800", phone: "919876543210" },
+            { id: 2, name: "Smash Zone", location: "KK Nagar, Trichy", sport: ["Badminton"], price: 300, rating: 4.5, image: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&q=80&w=800", phone: "919876543211" },
+            { id: 3, name: "Goal Corner", location: "Puthur, Trichy", sport: ["Football"], price: 450, rating: 4.7, image: "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=800", phone: "919876543213" },
+            { id: 4, name: "Power Play Park", location: "Srirangam, Trichy", sport: ["Cricket", "Tennis"], price: 400, rating: 4.9, image: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80&w=800", phone: "919876543212" },
+            { id: 5, name: "The Turf 121", location: "Cantonment, Trichy", sport: ["Football", "Cricket"], price: 600, rating: 4.6, image: "https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&q=80&w=800", phone: "919876543214" },
+        ];
+
+        const MOCK_STRANGERS = [
+            { name: "Karthik S", sport: "Football", level: "Advanced", location: "Trichy", initials: "KS" },
+            { name: "Priya R", sport: "Badminton", level: "Intermediate", location: "Trichy", initials: "PR" },
+            { name: "Arun M", sport: "Cricket", level: "Pro", location: "Trichy", initials: "AM" },
+            { name: "Deepa K", sport: "Tennis", level: "Beginner", location: "Trichy", initials: "DK" },
+        ];
+
+        let user = null;
+        let hostedGames = [];
+        let globalArenas = [];
+
+        function init() {
+            user = JSON.parse(localStorage.getItem('playnow_user') || 'null');
+            const token = localStorage.getItem('playnow_token');
+            if (!user || !token || (user.role !== 'player' && user.role !== 'admin')) {
+                localStorage.removeItem('playnow_user');
+                localStorage.removeItem('playnow_token');
+                window.location.href = 'auth.html';
+                return;
+            }
+            if (true) {
+                const nameEl = document.getElementById('greeting-name');
+                if (nameEl) nameEl.textContent = user.username || user.name;
+                
+                const locEl = document.getElementById('greeting-location');
+                if (locEl) locEl.textContent = '📍 ' + (user.location || 'Location not set') + ' — Nearby venues for you!';
+                
+                const navUser = document.getElementById('nav-username');
+                if (navUser) navUser.textContent = '@' + user.username;
+                
+                const navProfile = document.getElementById('nav-user-profile');
+                const authBtn = document.getElementById('nav-auth-link');
+                if (navProfile && authBtn) {
+                    navProfile.style.display = 'flex';
+                    authBtn.style.display = 'none';
+                }
+
+                const navAv = document.getElementById('nav-avatar');
+                if (navAv) navAv.textContent = (user.username || user.name || 'P')[0].toUpperCase();
+
+                const sportStat = document.getElementById('stat-sports');
+                if (sportStat) {
+                    const fav = Array.isArray(user.sports) ? user.sports[0] : (user.sports || '—');
+                    sportStat.textContent = fav || '—';
+                }
+
+                const nearbyBadge = document.getElementById('nearby-location-badge');
+                if (nearbyBadge) nearbyBadge.textContent = '📍 ' + (user.location || 'All Venues');
+            }
+            hostedGames = JSON.parse(localStorage.getItem('playnow_hosted') || '[]');
+            loadNearbyVenues();
+            loadStrangerList();
+            loadHostedGames();
+            loadProfile();
+            startCountdown();
+        }
+
+        function showSkeletons() {
+            const grid = document.getElementById('nearby-grid');
+            grid.innerHTML = Array(3).fill(0).map(() => `
+                <div class="card skeleton-card">
+                    <div class="skeleton" style="height:180px; border-radius:18px; margin-bottom:20px;"></div>
+                    <div class="skeleton" style="height:24px; width:70%; margin-bottom:10px;"></div>
+                    <div class="skeleton" style="height:16px; width:40%; margin-bottom:20px;"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="skeleton" style="height:30px; width:80px;"></div>
+                        <div class="skeleton" style="height:20px; width:60px;"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadNearbyVenues() {
+            showSkeletons();
+            try {
+                let url = '/api/turfs'; // Standardized endpoint
+                if (user && user.location) {
+                    url += '?location=' + encodeURIComponent(user.location);
+                }
+                let res = await fetch(url);
+                let Arenas = await res.json();
+
+                if ((!Arenas || Arenas.length === 0) && user && user.location) {
+                    // fallback to all if no nearby
+                    res = await fetch('/api/turfs');
+                    Arenas = await res.json();
+                    const badge = document.getElementById('nearby-location-badge');
+                    if (badge) badge.textContent = '📍 Showing all venues (None nearby)';
+                }
+
+                if (!Arenas || Arenas.length === 0) Arenas = MOCK_VENUES;
+                globalArenas = Arenas;
+
+                const grid = document.getElementById('nearby-grid');
+                grid.innerHTML = Arenas.map(v => `
+                    <div class="venue-card" onclick="openWhatsApp('${v._id || v.id}')" data-reveal>
+                        <div style="height:180px;background:url('${v.image || v.img || 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=800'}') center/cover;position:relative; border-radius: 12px; overflow: hidden;">
+                            <span style="position:absolute;top:12px;right:12px;background:var(--primary);color:var(--bg-dark);padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:800; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">${v.rating || 4.5} ★</span>
+                            <div style="position:absolute;bottom:12px;left:12px;display:flex;gap:6px;">
+                                ${(Array.isArray(v.sport) ? v.sport : [v.sport]).map(s => `<span style="background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);color:white;padding:4px 10px;border-radius:8px;font-size:0.7rem;font-weight:700;">${s}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div style="padding:20px 0;">
+                            <h3 style="font-size:1.15rem;margin-bottom:6px;">${v.name}</h3>
+                            <p style="font-size:0.85rem;margin-bottom:14px; display: flex; align-items: center; gap: 4px;"><span>📍</span> ${v.location}</p>
+                            <div style="display:flex;justify-content:space-between;align-items:center; border-top: 1px solid var(--glass-border); padding-top: 15px;">
+                                <span style="font-weight:900;font-size:1.3rem; color: var(--primary);">₹${v.price}<span style="font-size:0.85rem;font-weight:400;color:var(--text-dim);">/hr</span></span>
+                                <span style="color:#25D366;font-size:0.85rem;font-weight:800; display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 1.1rem;">📱</span> Book Now
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                if (window.initReveals) window.initReveals();
+            } catch (e) {
+                console.error('Nearby venues load failed:', e);
+                // Last resort fallback
+                const grid = document.getElementById('nearby-grid');
+                grid.innerHTML = MOCK_VENUES.map(v => `<div class="venue-card">...</div>`).join('');
+            }
+        }
+
+        function loadStrangerList() {
+            const list = document.getElementById('stranger-list');
+            list.innerHTML = MOCK_STRANGERS.map(p => `
+                <div class="match-card">
+                    <div style="display:flex;align-items:center;gap:14px;flex:1;">
+                        <div class="avatar">${p.initials}</div>
+                        <div>
+                            <div style="font-weight:700;font-size:0.95rem;">${p.name}</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);">⚽ ${p.sport} • ⚡ ${p.level} • 📍 ${p.location}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline" style="padding:8px 18px;font-size:0.75rem;" onclick="challengePlayer('${p.name}')">Challenge</button>
+                </div>
+            `).join('');
+        }
+
+        function loadHostedGames() {
+            const list = document.getElementById('hosted-list');
+            if (hostedGames.length === 0) return;
+            list.innerHTML = hostedGames.map((g, i) => `
+                <div class="match-card">
+                    <div style="flex:1;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                            <span style="font-size:1.2rem;">${g.sport === 'Football' ? '⚽' : g.sport === 'Cricket' ? '🏏' : '🏸'}</span>
+                            <span style="font-weight:800;">${g.sport}</span>
+                            <span class="badge badge-primary" style="font-size:0.7rem;padding:3px 10px;">Hosting</span>
+                        </div>
+                        <div style="font-size:0.85rem;color:var(--text-muted);">📍 ${g.venue} • 🕐 ${new Date(g.time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })} • 👥 Need ${g.players} players</div>
+                        ${g.fee > 0 ? `<div style="font-size:0.85rem;color:var(--primary);margin-top:4px;">💰 ₹${g.fee} entry</div>` : '<div style="font-size:0.85rem;color:var(--text-dim);margin-top:4px;">🆓 Free game</div>'}
+                    </div>
+                    <button class="btn btn-outline" style="padding:8px 14px;font-size:0.75rem;" onclick="shareGame(${i})">Share 🔗</button>
+                </div>
+            `).join('');
+        }
+
+        function loadProfile() {
+            if (!user) return;
+            document.getElementById('profile-content').innerHTML = `
+                <div style="text-align:center;">
+                    <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#00d4ff);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:var(--bg-dark);margin:0 auto 16px;">${(user.username || 'P')[0].toUpperCase()}</div>
+                    <div style="font-size:1.2rem;font-weight:900;">@${user.username}</div>
+                    <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px;">${user.skill} Player</div>
+                </div>
+                <div>
+                    <h3 style="font-size:1.2rem;margin-bottom:20px;">Profile Details</h3>
+                    <div style="display:flex;flex-direction:column;gap:14px;font-size:0.9rem;">
+                        <div class="stat-box" style="text-align:left;padding:14px 20px;"><span style="color:var(--text-muted);">Name: </span><span style="font-weight:700;">${user.name || user.username}</span></div>
+                        <div class="stat-box" style="text-align:left;padding:14px 20px;"><span style="color:var(--text-muted);">Location: </span><span style="font-weight:700;">📍 ${user.location}</span></div>
+                        <div class="stat-box" style="text-align:left;padding:14px 20px;"><span style="color:var(--text-muted);">Sports: </span><span style="font-weight:700;">⚽ ${(user.sports || []).join(', ')}</span></div>
+                        <div class="stat-box" style="text-align:left;padding:14px 20px;"><span style="color:var(--text-muted);">Skill: </span><span style="font-weight:700;color:var(--primary);">⚡ ${user.skill}</span></div>
+                        ${user.dob ? `<div class="stat-box" style="text-align:left;padding:14px 20px;"><span style="color:var(--text-muted);">DOB: </span><span style="font-weight:700;">${user.dob}</span></div>` : ''}
+                    </div>
+                    <button class="btn btn-outline" style="width:100%;margin-top:20px;font-size:0.85rem;" onclick="localStorage.removeItem('playnow_user');localStorage.removeItem('playnow_token');localStorage.removeItem('playnow_hosted');window.location.href='auth.html'">Logout</button>
+                </div>
+            `;
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach((b, i) => {
+                const tabs = ['nearby', 'stranger', 'hosted', 'profile'];
+                b.classList.toggle('active', tabs[i] === tab);
+            });
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function openWhatsApp(venueId) {
+            const v = globalArenas.find(x => x._id === venueId || x.id == venueId) || MOCK_VENUES.find(x => x.id == venueId);
+            if (!v) return;
+            document.getElementById('whatsapp-venue-name').textContent = v.name;
+            document.getElementById('wa-venue').textContent = v.name;
+            document.getElementById('wa-location').textContent = v.location;
+            document.getElementById('wa-price').textContent = '₹' + v.price + '/hr';
+            const msg = encodeURIComponent(`Hi! I want to book ${v.name} (${v.location}) via PlayNow app. ₹${v.price}/hr. Please confirm availability!`);
+            document.getElementById('whatsapp-link').href = `https://wa.me/${v.phone}?text=${msg}`;
+            document.getElementById('whatsapp-modal').classList.add('open');
+        }
+
+        function closeWhatsappModal() { document.getElementById('whatsapp-modal').classList.remove('open'); }
+
+        function openHostModal() { document.getElementById('host-modal').classList.add('open'); }
+        function closeHostModal() { document.getElementById('host-modal').classList.remove('open'); }
+
+        async function createGame() {
+            const sport = document.getElementById('host-sport').value;
+            const venue = document.getElementById('host-venue').value;
+            const time = document.getElementById('host-time').value;
+            const players = document.getElementById('host-players').value;
+            const fee = document.getElementById('host-fee').value || 0;
+            const desc = document.getElementById('host-desc').value;
+
+            if (!venue || !time || !players) { alert('Venue, time and players needed fill pannu da!'); return; }
+
+            const token = localStorage.getItem('playnow_token');
+            try {
+                const res = await fetch('/api/games', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ sport, venue, time, players, fee, desc })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const game = { sport, venue, time, players, fee, desc, createdAt: new Date().toISOString() };
+                    hostedGames.push(game);
+                    localStorage.setItem('playnow_hosted', JSON.stringify(hostedGames));
+                    document.getElementById('stat-games').textContent = hostedGames.length;
+                    closeHostModal();
+                    loadHostedGames();
+                    switchTab('hosted');
+                    alert(`Game created! ${sport} at ${venue} — Players can now join! 🎮`);
+                }
+            } catch (e) {
+                // fallback to localStorage if server not available
+                const game = { sport, venue, time, players, fee, desc, createdAt: new Date().toISOString() };
+                hostedGames.push(game);
+                localStorage.setItem('playnow_hosted', JSON.stringify(hostedGames));
+                document.getElementById('stat-games').textContent = hostedGames.length;
+                closeHostModal(); loadHostedGames(); switchTab('hosted');
+                alert(`Game created! ${sport} at ${venue} 🎮`);
+            }
+        }
+
+        function shareGame(i) {
+            const g = hostedGames[i];
+            const text = `🎮 Join my ${g.sport} game!\n📍 ${g.venue}\n🕐 ${new Date(g.time).toLocaleString()}\n👥 Need ${g.players} players\n${g.fee > 0 ? `💰 ₹${g.fee} entry` : '🆓 Free!'}\n\nJoin via PlayNow!`;
+            navigator.clipboard.writeText(text).then(() => alert('Game details copied! Share panni players koodaiku 🎮'));
+        }
+
+        function joinStrangerMatch() {
+            if (!user) { window.location.href = 'auth.html'; return; }
+            alert(`Joined! This week's ${user.sports?.[0] || 'sports'} stranger match la unoda name add aaguchchu! Result Sunday announce aagum 🤝`);
+        }
+
+        function challengePlayer(name) {
+            const msg = encodeURIComponent(`Hey ${name}! PlayNow app la unna challenge panren! Game podalama? 🏆`);
+            window.open(`https://wa.me/?text=${msg}`, '_blank');
+        }
+
+        function startCountdown() {
+            function update() {
+                const now = new Date();
+                const nextSunday = new Date();
+                nextSunday.setDate(now.getDate() + (7 - now.getDay()));
+                nextSunday.setHours(10, 0, 0, 0);
+                const diff = nextSunday - now;
+                const d = Math.floor(diff / 86400000);
+                const h = Math.floor((diff % 86400000) / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const el = document.getElementById('countdown');
+                if (el) el.textContent = `${d}d ${h}h ${m}m`;
+            }
+            update();
+            setInterval(update, 60000);
+        }
+
+        init();
+
+        // ── Enter Key Support ─────────────────────────────────────────
+        document.body.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (e.target.tagName === 'TEXTAREA') return;
+
+                const hostModal = document.getElementById('host-modal');
+                if (hostModal && hostModal.classList.contains('open')) {
+                    e.preventDefault();
+                    createGame();
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

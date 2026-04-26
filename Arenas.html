@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arenas & Courts | Play Now</title>
+    <meta name="description" content="Discover premium sports venues, turfs, and courts near you. Filter by sport and location to find your perfect play area.">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header id="navbar-container"></header>
+
+    <main class="section-padding" style="padding-top: 120px;">
+        <div class="container">
+            <div
+                style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <h2 style="font-size: 2.5rem;">Explore <span class="gradient-text">Arenas</span></h2>
+                <div style="display: flex; gap: 10px; flex-grow: 1; max-width: 500px;">
+                    <input type="text" placeholder="Search by location or sport..." style="flex-grow: 1;">
+                    <select style="width: 150px;">
+                        <option>All Sports</option>
+                        <option>Football</option>
+                        <option>Cricket</option>
+                        <option>Badminton</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-3" id="turf-container">
+                <!-- Data will be loaded from API -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="section-padding"
+        style="border-top: 1px solid var(--glass-border); text-align: center; margin-top: 50px;">
+        <div class="container">
+            <a href="#" class="logo" style="justify-content: center; margin-bottom: 24px;">PLAY<span>NOW</span></a>
+            <p style="color: var(--text-muted);">© 2026 Play Now. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        let currentArenas = []; // Global state for search/filter
+
+        // Static fallback data — works even without server
+        const STATIC_Arenas = [
+            { id: 1, name: "Elite Arena", sport: ["Football", "Cricket"], location: "Thillai Nagar, Trichy", price: 500, rating: 4.8, image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=800" },
+            { id: 2, name: "Smash Zone", sport: ["Badminton"], location: "KK Nagar, Trichy", price: 300, rating: 4.5, image: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&q=80&w=800" },
+            { id: 3, name: "Goal Corner", sport: ["Football"], location: "Puthur, Trichy", price: 450, rating: 4.7, image: "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=800" },
+            { id: 4, name: "Power Play Park", sport: ["Cricket", "Tennis"], location: "Srirangam, Trichy", price: 400, rating: 4.9, image: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80&w=800" },
+            { id: 5, name: "The Turf 121", sport: ["Football", "Cricket"], location: "Cantonment, Trichy", price: 600, rating: 4.6, image: "https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&q=80&w=800" }
+        ];
+
+        function renderArenas(Arenas) {
+            const container = document.getElementById('turf-container');
+            if (!Arenas || !Array.isArray(Arenas) || Arenas.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 100px 20px; background: rgba(255,255,255,0.02); border-radius: 24px; border: 1px dashed var(--glass-border);">
+                        <div style="font-size: 3.5rem; margin-bottom: 20px; opacity: 0.4;">🏟️</div>
+                        <h3 style="font-size: 1.5rem; margin-bottom: 10px;">No Arenas Found</h3>
+                        <p style="color: var(--text-muted);">Try adjusting your search filters or check back later da!</p>
+                    </div>
+                `;
+                return;
+            }
+            container.innerHTML = Arenas.map(turf => {
+                if (!turf) return '';
+                const turfId = turf._id || turf.id;
+                return `
+                <div class="card turf-card" style="cursor:pointer;" onclick="window.location.href='booking.html?id=${turfId}'">
+                    <div class="turf-image" style="height:220px;background:url('${turf.image || 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=800'}') center/cover;border-radius:18px;margin-bottom:24px;position:relative; overflow: hidden;">
+                        <div style="position:absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);"></div>
+                        <span style="position:absolute;top:14px;right:14px;background:var(--primary);color:var(--bg-dark);padding:6px 14px;border-radius:100px;font-size:0.8rem;font-weight:900; box-shadow: 0 4px 12px rgba(193,253,51,0.3);">${turf.rating || '4.5'} ★</span>
+                    </div>
+                    <div style="padding: 0 4px;">
+                        <h3 style="margin-bottom:8px; font-size: 1.4rem;">${turf.name}</h3>
+                        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:20px; display: flex; align-items: center; gap: 6px;">
+                            <span>📍</span> ${turf.location}
+                        </p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;">
+                            ${(Array.isArray(turf.sport) ? turf.sport : (turf.sport ? [turf.sport] : [])).map(s => `<span style="background:rgba(255,255,255,0.05); border: 1px solid var(--glass-border); padding:6px 14px;border-radius:100px;font-size:0.75rem; font-weight: 600; color: var(--text-muted);">${s}</span>`).join('')}
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em;">Starts from</span>
+                                <span style="font-weight:900;font-size:1.6rem; color: var(--primary);">₹${turf.price}<span style="font-size:0.85rem;font-weight:400;color:var(--text-dim);">/hr</span></span>
+                            </div>
+                            <a href="booking.html?id=${turfId}" class="btn btn-primary" style="padding:12px 24px;border-radius:12px;">Book Now</a>
+                        </div>
+                    </div>
+                </div>
+            `; }).join('');
+            
+            if (window.initReveals) window.initReveals();
+        }
+
+        function showSkeletons() {
+            const container = document.getElementById('turf-container');
+            if (!container) return;
+            container.innerHTML = Array(6).fill(0).map(() => `
+                <div class="card skeleton-card">
+                    <div class="skeleton" style="height:220px; border-radius:18px; margin-bottom:24px;"></div>
+                    <div class="skeleton" style="height:28px; width:70%; margin-bottom:12px;"></div>
+                    <div class="skeleton" style="height:20px; width:40%; margin-bottom:20px;"></div>
+                    <div style="display:flex; gap:10px; margin-bottom:28px;">
+                        <div class="skeleton" style="height:32px; width:60px; border-radius:100px;"></div>
+                        <div class="skeleton" style="height:32px; width:80px; border-radius:100px;"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                        <div class="skeleton" style="height:40px; width:100px;"></div>
+                        <div class="skeleton" style="height:45px; width:120px; border-radius:12px;"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadArenas() {
+            showSkeletons();
+            try {
+                const res = await fetch('/api/turfs');
+                if (!res.ok) throw new Error('API error');
+                const arenas = await res.json();
+                currentArenas = Array.isArray(arenas) ? arenas : (arenas ? [arenas] : []);
+                if (currentArenas.length === 0) throw new Error('Empty API result');
+                renderArenas(currentArenas);
+            } catch (e) {
+                console.warn('API load failed or empty, using static data', e);
+                currentArenas = STATIC_Arenas;
+                renderArenas(currentArenas);
+            }
+        }
+
+        // Search & filter — bind directly, DOM is already ready at this point
+        const searchInput = document.querySelector('input[type="text"]');
+        const sportSelect = document.querySelector('select');
+        if (searchInput) searchInput.addEventListener('input', filterArenas);
+        if (sportSelect) sportSelect.addEventListener('change', filterArenas);
+
+        // Kick off immediately
+        loadArenas();
+
+        function filterArenas() {
+            const searchInput = document.querySelector('input[type="text"]');
+            const sportSelect = document.querySelector('select');
+            const q = (searchInput?.value || '').toLowerCase();
+            const sport = sportSelect?.value || 'All Sports';
+            
+            let filtered = currentArenas.filter(t => {
+                if (!t) return false;
+                const nameMatch = (t.name || '').toLowerCase().includes(q);
+                const locMatch = (t.location || '').toLowerCase().includes(q);
+                const sportsMatch = Array.isArray(t.sport) 
+                    ? t.sport.some(s => (s || '').toLowerCase().includes(q))
+                    : (t.sport || '').toLowerCase().includes(q);
+                
+                const matchSearch = !q || nameMatch || locMatch || sportsMatch;
+                const matchSport = sport === 'All Sports' || (Array.isArray(t.sport) ? t.sport.includes(sport) : t.sport === sport);
+                return matchSearch && matchSport;
+            });
+            renderArenas(filtered);
+        }
+    </script>
+</body>
+
+</html>

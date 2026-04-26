@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Play Now</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .auth-container {
+            max-width: 480px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .auth-card {
+            background: rgba(10, 10, 11, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-bright);
+            border-radius: 28px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .error-msg {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <header id="navbar-container"></header>
+
+    <main class="section-padding" style="padding-top:120px;min-height:100vh;display:flex;align-items:center;">
+        <div class="container">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <h2 style="font-size:1.8rem;margin-bottom:6px;text-align:center;">Admin <span class="gradient-text">Portal</span></h2>
+                    <p style="text-align:center;color:var(--text-muted);font-size:0.9rem;margin-bottom:30px;">Authorized Access Only</p>
+                    
+                    <div id="error-msg" class="error-msg"></div>
+
+                    <div class="form-group">
+                        <label>Admin ID / Email</label>
+                        <input type="text" id="email-input" placeholder="e.g. ADM-NAME or admin@playnow.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password-input" placeholder="Enter admin password">
+                    </div>
+
+                    <button class="btn btn-primary" style="width:100%;margin-top:20px;" id="login-btn">Secure Login →</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="main.js"></script>
+    <script>
+        const API = '';
+        
+        function showError(msg) {
+            const errEl = document.getElementById('error-msg');
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+        }
+
+        document.getElementById('login-btn').onclick = async () => {
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const errEl = document.getElementById('error-msg');
+            errEl.style.display = 'none';
+
+            if (!email || !password) { showError('Identifier and password required!'); return; }
+
+            const btn = document.getElementById('login-btn');
+            btn.textContent = 'Authenticating...'; btn.disabled = true;
+
+            try {
+                const res = await fetch(API + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ loginId: email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) { 
+                    showError(data.error || 'Login failed'); 
+                    btn.textContent = 'Secure Login →'; 
+                    btn.disabled = false; 
+                    return; 
+                }
+
+                if (data.user.role !== 'admin') {
+                    showError('Access Denied: You are not an admin.');
+                    btn.textContent = 'Secure Login →'; 
+                    btn.disabled = false; 
+                    return;
+                }
+
+                localStorage.setItem('playnow_token', data.token);
+                localStorage.setItem('playnow_user', JSON.stringify(data.user));
+                window.location.href = 'admin.html';
+                
+            } catch (e) {
+                showError('Server connect aagala. Node server running ah check pannu!');
+                btn.textContent = 'Secure Login →'; btn.disabled = false;
+            }
+        };
+
+        // ── Enter Key Support ─────────────────────────────────────────
+        document.body.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('login-btn').click();
+            }
+        });
+    </script>
+</body>
+</html>

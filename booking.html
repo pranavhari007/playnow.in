@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Your Slot | Play Now</title>
+    <meta name="description"
+        content="Secure your spot at your favorite arena. Easy online booking for football, cricket, badminton, and more.">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .slot {
+            padding: 15px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+        }
+
+        .slot:hover:not(.booked) {
+            border-color: var(--primary);
+            background: rgba(193, 253, 51, 0.1);
+        }
+
+        .slot.selected {
+            background: var(--primary);
+            color: var(--bg-dark);
+            border-color: var(--primary);
+        }
+
+        .slot.booked {
+            opacity: 0.3;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .calendar-day {
+            min-width: 65px;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            gap: 4px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .calendar-day .day-num {
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
+
+        .calendar-day .day-name {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .calendar-day.active {
+            background: var(--primary);
+            color: var(--bg-dark);
+            font-weight: 700;
+            border-color: var(--primary);
+        }
+
+        .calendar-day.active .day-name {
+            color: var(--bg-dark);
+        }
+
+        .calendar-day:hover:not(.active) {
+            background: var(--glass);
+            border-color: var(--primary);
+        }
+
+        .calendar-day.past {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Booking Confirmation Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-bright);
+            border-radius: 28px;
+            padding: 48px;
+            max-width: 480px;
+            width: 92%;
+            text-align: center;
+            position: relative;
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-content .success-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(193, 253, 51, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 2.5rem;
+            animation: popIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 12px;
+            font-size: 1.8rem;
+        }
+
+        .modal-content .booking-id {
+            background: rgba(193, 253, 51, 0.1);
+            border: 1px solid rgba(193, 253, 51, 0.3);
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-weight: 800;
+            color: var(--primary);
+            display: inline-block;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+        }
+
+        .modal-details {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 28px;
+        }
+
+        .modal-details .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .modal-details .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .modal-details .detail-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .modal-details .detail-value {
+            font-weight: 700;
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+            padding: 14px 20px;
+            font-size: 0.85rem;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-modal:hover {
+            color: var(--text-main);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header id="navbar-container"></header>
+
+    <main class="section-padding" style="padding-top: 120px;">
+        <div class="container">
+            <div class="grid" style="grid-template-columns: 1.5fr 1fr; align-items: start; gap: 40px;">
+                <div>
+                    <h2 style="margin-bottom: 10px;">Elite <span class="gradient-text">Arena</span></h2>
+                    <p style="color: var(--text-muted); margin-bottom: 40px;">Select your preferred date and time slot
+                        to book your game.</p>
+
+                    <!-- Date Selection -->
+                    <div class="card" style="margin-bottom: 30px;">
+                        <h4 style="margin-bottom: 20px;" id="calendar-month"></h4>
+                        <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px;"
+                            id="calendar-days">
+                            <!-- Days will be generated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Slot Selection -->
+                    <div class="card" style="margin-bottom: 30px;">
+                        <h4 style="margin-bottom: 20px;">Available Slots</h4>
+                        <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px;" id="time-slots">
+                            <!-- Slots generated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Phone Number Input -->
+                    <div class="card">
+                        <h4 style="margin-bottom: 20px;">Your <span class="gradient-text">Details</span></h4>
+                        <div class="form-group">
+                            <label>Phone Number (for booking confirmation)</label>
+                            <input type="tel" id="user-phone" placeholder="+91 XXXXX XXXXX" required
+                                style="font-size: 1.1rem; letter-spacing: 0.05em;">
+                        </div>
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="user-name" placeholder="Enter your full name" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Booking Summary -->
+                <div class="card glass" style="position: sticky; top: 100px;">
+                    <h3 style="margin-bottom: 24px;">Booking <span class="gradient-text">Summary</span></h3>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <span style="color: var(--text-muted);">Venue:</span>
+                        <span style="font-weight: 600;" id="summary-venue">Elite Arena</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <span style="color: var(--text-muted);">Date:</span>
+                        <span style="font-weight: 600;" id="summary-date">Select a date</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <span style="color: var(--text-muted);">Time:</span>
+                        <span style="font-weight: 600;" id="summary-time">Select a slot</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <span style="color: var(--text-muted);">Duration:</span>
+                        <span style="font-weight: 600;">1 Hour</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <span style="color: var(--text-muted);">Price:</span>
+                        <span style="font-weight: 600;" id="summary-price">₹500</span>
+                    </div>
+                    <div
+                        style="border-top: 1px solid var(--glass-border); padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; margin-bottom: 30px;">
+                        <span style="font-weight: 800;">Total:</span>
+                        <span style="font-weight: 800; color: var(--primary); font-size: 1.5rem;"
+                            id="summary-total">₹500</span>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" id="confirm-booking-btn">Confirm
+                        Booking</button>
+                    <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 15px;">Easy
+                        cancellation up to 6 hours before play.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Booking Confirmation Modal -->
+    <div class="modal-overlay" id="booking-modal">
+        <div class="modal-content">
+            <button class="close-modal" id="close-modal">&times;</button>
+            <div class="success-icon">✅</div>
+            <h2>Booking <span class="gradient-text">Confirmed!</span></h2>
+            <p style="margin-bottom: 20px;">Your slot has been successfully booked.</p>
+            <div class="booking-id" id="modal-booking-id">BK-XXXXXXX</div>
+            <div class="modal-details">
+                <div class="detail-row">
+                    <span class="detail-label">Venue</span>
+                    <span class="detail-value" id="modal-venue">Elite Arena</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date</span>
+                    <span class="detail-value" id="modal-date">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Time</span>
+                    <span class="detail-value" id="modal-time">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total</span>
+                    <span class="detail-value" style="color: var(--primary);" id="modal-total">₹500</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <a href="index.html" class="btn btn-outline">Back Home</a>
+                <button class="btn btn-primary" id="whatsapp-notify-btn">📱 Get WhatsApp Confirmation</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+        // ===== Static Venue Data (fallback) =====
+        const STATIC_TURFS = [
+            { id: '1', name: "Elite Arena", sport: ["Football", "Cricket"], location: "Thillai Nagar, Trichy", price: 500, rating: 4.8, phone: "919876543210", image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=800", slots: ['06:00 AM', '08:00 AM', '10:00 AM', '04:00 PM', '06:00 PM', '08:00 PM'] },
+            { id: '2', name: "Smash Zone", sport: ["Badminton"], location: "KK Nagar, Trichy", price: 300, rating: 4.5, phone: "919876543211", image: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&q=80&w=800", slots: ['06:00 AM', '07:00 AM', '08:00 AM', '05:00 PM', '06:00 PM', '07:00 PM'] },
+            { id: '3', name: "Goal Corner", sport: ["Football"], location: "Puthur, Trichy", price: 450, rating: 4.7, phone: "919876543213", image: "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=800", slots: ['06:00 AM', '08:00 AM', '04:00 PM', '06:00 PM', '08:00 PM'] },
+            { id: '4', name: "Power Play Park", sport: ["Cricket", "Tennis"], location: "Srirangam, Trichy", price: 400, rating: 4.9, phone: "919876543212", image: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80&w=800", slots: ['05:00 AM', '07:00 AM', '09:00 AM', '04:00 PM', '06:00 PM', '08:00 PM'] },
+            { id: '5', name: "The Turf 121", sport: ["Football", "Cricket"], location: "Cantonment, Trichy", price: 600, rating: 4.6, phone: "919876543214", image: "https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&q=80&w=800", slots: ['06:00 AM', '10:00 AM', '04:00 PM', '08:00 PM'] },
+        ];
+
+        // ===== State =====
+        let selectedDate = null;
+        let selectedSlot = null;
+        let VENUE_DATA = STATIC_TURFS[0]; // default
+        const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+        const ALL_SLOTS = [
+            '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
+            '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM',
+            '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM', '10:00 PM', '11:00 PM'
+        ];
+
+        // ===== Load Turf from URL param =====
+        async function loadTurfFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const turfId = urlParams.get('id');
+
+            if (turfId) {
+                // Try API first
+                try {
+                    const res = await fetch(`/api/turfs/${turfId}`);
+                    if (res.ok) {
+                        VENUE_DATA = await res.json();
+                    } else {
+                        throw new Error('Not found in API');
+                    }
+                } catch {
+                    // Fall back to static data
+                    const found = STATIC_TURFS.find(t => String(t.id) === String(turfId));
+                    if (found) VENUE_DATA = found;
+                }
+            }
+
+            applyTurfToPage();
+            generateCalendar();
+        }
+
+        function applyTurfToPage() {
+            const name = VENUE_DATA.name || 'Venue';
+            const price = VENUE_DATA.price || 500;
+            const location = VENUE_DATA.location || '';
+            const sports = Array.isArray(VENUE_DATA.sport) ? VENUE_DATA.sport.join(' • ') : (VENUE_DATA.sport || '');
+            const image = VENUE_DATA.image || '';
+
+            // Page title & heading
+            document.title = `Book ${name} | Play Now`;
+            const heading = document.querySelector('h2');
+            if (heading) heading.innerHTML = `${name.split(' ')[0]} <span class="gradient-text">${name.split(' ').slice(1).join(' ')}</span>`;
+
+            // Venue image in booking area
+            let imgEl = document.getElementById('venue-hero-img');
+            if (!imgEl) {
+                imgEl = document.createElement('div');
+                imgEl.id = 'venue-hero-img';
+                imgEl.style.cssText = `height:220px; background:url('${image}') center/cover; border-radius:18px; margin-bottom:28px; position:relative; overflow:hidden;`;
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6),transparent);';
+                const badge = document.createElement('span');
+                badge.style.cssText = 'position:absolute;top:14px;right:14px;background:var(--primary);color:var(--bg-dark);padding:6px 14px;border-radius:100px;font-size:0.85rem;font-weight:900;';
+                badge.textContent = `${VENUE_DATA.rating || 4.5} ★`;
+                const locTag = document.createElement('span');
+                locTag.style.cssText = 'position:absolute;bottom:14px;left:14px;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);color:white;padding:6px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;';
+                locTag.textContent = `📍 ${location}`;
+                imgEl.appendChild(overlay);
+                imgEl.appendChild(badge);
+                imgEl.appendChild(locTag);
+                const mainEl = document.querySelector('main .container > .grid > div:first-child');
+                if (mainEl) mainEl.insertBefore(imgEl, mainEl.firstChild);
+            }
+
+            // Venue name in summary sidebar and modal
+            const summaryVenue = document.getElementById('summary-venue');
+            const modalVenue = document.getElementById('modal-venue');
+            if (summaryVenue) summaryVenue.textContent = name;
+            if (modalVenue) modalVenue.textContent = name;
+
+            // Price
+            const priceEl = document.getElementById('summary-price');
+            const totalEl = document.getElementById('summary-total');
+            const modalTotal = document.getElementById('modal-total');
+            if (priceEl) priceEl.textContent = `₹${price}`;
+            if (totalEl) totalEl.textContent = `₹${price}`;
+            if (modalTotal) modalTotal.textContent = `₹${price}`;
+        }
+
+        // Simulate some randomly booked slots per day
+        function getBookedSlots(dateStr) {
+            let hash = 0;
+            for (let i = 0; i < dateStr.length; i++) {
+                hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+                hash |= 0;
+            }
+            const bookedIndices = new Set();
+            for (let i = 0; i < 3; i++) {
+                bookedIndices.add(Math.abs((hash + i * 7) % ALL_SLOTS.length));
+            }
+            return bookedIndices;
+        }
+
+        // ===== Generate Calendar =====
+        function hasAvailableSlots(date) {
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            const venueSlots = (VENUE_DATA.slots && VENUE_DATA.slots.length > 0) ? VENUE_DATA.slots : ALL_SLOTS;
+            const bookedIndices = getBookedSlots(date.toDateString());
+            return venueSlots.some((slot, i) => {
+                const index = ALL_SLOTS.indexOf(slot);
+                if (bookedIndices.has(index)) return false;
+                if (isToday && parseSlotHour(slot) < now.getHours()) return false;
+                return true;
+            });
+        }
+
+        function generateCalendar() {
+            const container = document.getElementById('calendar-days');
+            const monthLabel = document.getElementById('calendar-month');
+            const today = new Date();
+            monthLabel.textContent = `${MONTH_NAMES[today.getMonth()]} ${today.getFullYear()}`;
+            container.innerHTML = '';
+
+            let defaultSet = false;
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                // Auto-select the first day with available slots
+                if (!defaultSet && hasAvailableSlots(date)) {
+                    dayEl.classList.add('active');
+                    selectedDate = date;
+                    defaultSet = true;
+                }
+                dayEl.innerHTML = `<span class="day-num">${date.getDate()}</span><span class="day-name">${DAY_NAMES[date.getDay()]}</span>`;
+                dayEl.addEventListener('click', () => {
+                    document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('active'));
+                    dayEl.classList.add('active');
+                    selectedDate = date;
+                    monthLabel.textContent = `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
+                    generateTimeSlots();
+                    updateSummary();
+                });
+                container.appendChild(dayEl);
+            }
+            generateTimeSlots();
+            updateSummary();
+        }
+
+        // ===== Generate Time Slots =====
+        function generateTimeSlots() {
+            const container = document.getElementById('time-slots');
+            container.innerHTML = '';
+            selectedSlot = null;
+            const dateStr = selectedDate.toDateString();
+            const bookedIndices = getBookedSlots(dateStr);
+            const now = new Date();
+            const isToday = selectedDate.toDateString() === now.toDateString();
+            const venueSlots = (VENUE_DATA.slots && VENUE_DATA.slots.length > 0) ? VENUE_DATA.slots : ALL_SLOTS;
+
+            let availableCount = 0;
+            venueSlots.forEach((slot) => {
+                const index = ALL_SLOTS.indexOf(slot);
+                const slotEl = document.createElement('div');
+                slotEl.className = 'slot';
+                slotEl.textContent = slot;
+                const isBooked = bookedIndices.has(index);
+                let isPast = false;
+                if (isToday) {
+                    const slotHour = parseSlotHour(slot);
+                    // Use < so current hour is still bookable
+                    if (slotHour < now.getHours()) isPast = true;
+                }
+                if (isBooked || isPast) {
+                    slotEl.classList.add('booked');
+                    slotEl.title = isBooked ? 'Already booked' : 'Past time';
+                } else {
+                    availableCount++;
+                    slotEl.addEventListener('click', () => {
+                        document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+                        slotEl.classList.add('selected');
+                        selectedSlot = slot;
+                        updateSummary();
+                    });
+                }
+                container.appendChild(slotEl);
+            });
+
+            // Show a helpful message if no slots are available today
+            if (availableCount === 0) {
+                container.innerHTML = `
+                    <div style="grid-column:1/-1; text-align:center; padding:30px 10px; color:var(--text-muted); font-size:0.9rem;">
+                        <div style="font-size:2rem; margin-bottom:10px;">🌙</div>
+                        <p style="font-weight:700; color:var(--text-main); margin-bottom:6px;">No slots available today</p>
+                        <p>Please select a different date from the calendar above.</p>
+                    </div>`;
+            }
+            updateSummary();
+        }
+
+        function parseSlotHour(slot) {
+            const [time, period] = slot.split(' ');
+            let [hours] = time.split(':').map(Number);
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12) hours = 0;
+            return hours;
+        }
+
+        // ===== Update Summary =====
+        function updateSummary() {
+            const dateEl = document.getElementById('summary-date');
+            const timeEl = document.getElementById('summary-time');
+            if (selectedDate) {
+                dateEl.textContent = selectedDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+            if (selectedSlot) {
+                const endHour = parseSlotHour(selectedSlot) + 1;
+                const endPeriod = endHour >= 12 ? 'PM' : 'AM';
+                const endHour12 = endHour > 12 ? endHour - 12 : (endHour === 0 ? 12 : endHour);
+                timeEl.textContent = `${selectedSlot} - ${String(endHour12).padStart(2, '0')}:00 ${endPeriod}`;
+            } else {
+                timeEl.textContent = 'Select a slot';
+            }
+            const price = VENUE_DATA.price || 500;
+            const totalEl = document.getElementById('summary-total');
+            if (totalEl) totalEl.textContent = `₹${price}`;
+        }
+
+        // ===== Confirm Booking =====
+        document.getElementById('confirm-booking-btn').addEventListener('click', async () => {
+            const phone = document.getElementById('user-phone').value.trim();
+            const userName = document.getElementById('user-name').value.trim();
+            if (!selectedDate) { alert('Please select a date.'); return; }
+            if (!selectedSlot) { alert('Please select a time slot.'); return; }
+            if (!phone) { alert('Please enter your phone number for booking confirmation.'); return; }
+            if (!userName) { alert('Please enter your full name.'); return; }
+
+            const dateStr = selectedDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+            const endHour = parseSlotHour(selectedSlot) + 1;
+            const endPeriod = endHour >= 12 ? 'PM' : 'AM';
+            const endHour12 = endHour > 12 ? endHour - 12 : (endHour === 0 ? 12 : endHour);
+            const timeStr = `${selectedSlot} - ${String(endHour12).padStart(2, '0')}:00 ${endPeriod}`;
+            const price = VENUE_DATA.price || 500;
+
+            // Generate a fallback ID in case API is offline
+            let bookingId = 'BK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+            try {
+                const payload = {
+                    name: userName,
+                    turfName: VENUE_DATA.name,
+                    venue: VENUE_DATA.name,
+                    turfId: VENUE_DATA._id || VENUE_DATA.id,
+                    date: dateStr,
+                    time: timeStr,
+                    slot: selectedSlot,
+                    phone: phone,
+                    total: `₹${price}`
+                };
+                const response = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.bookingId) bookingId = result.bookingId;
+                }
+            } catch {
+                // Server offline — proceed with local confirmation
+            }
+
+            // Always show the confirmation modal
+            showConfirmationModal(bookingId, dateStr, timeStr, phone, userName, price);
+        });
+
+        // ===== Show Confirmation Modal =====
+        const PLAYNOW_WHATSAPP = '919363756533'; // PlayNow business number
+
+        function showConfirmationModal(bookingId, date, time, phone, name, price) {
+            document.getElementById('modal-booking-id').textContent = bookingId;
+            document.getElementById('modal-date').textContent = date;
+            document.getElementById('modal-time').textContent = time;
+            document.getElementById('modal-total').textContent = `₹${price}`;
+            document.getElementById('booking-modal').classList.add('active');
+
+            document.getElementById('whatsapp-notify-btn').onclick = () => {
+                const msg =
+                    `🏟️ *New Booking Request — PlayNow!*\n\n` +
+                    `🎫 *Booking ID:* ${bookingId}\n` +
+                    `👤 *Customer Name:* ${name}\n` +
+                    `📞 *Customer Phone:* ${phone}\n` +
+                    `📍 *Venue:* ${VENUE_DATA.name}\n` +
+                    `📅 *Date:* ${date}\n` +
+                    `⏰ *Time Slot:* ${time}\n` +
+                    `💰 *Total:* ₹${price}\n\n` +
+                    `Please confirm this booking. Thank you! 🙏`;
+
+                window.open(`https://wa.me/${PLAYNOW_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
+            };
+        }
+
+        // ===== Close Modal =====
+        document.getElementById('close-modal').addEventListener('click', () => document.getElementById('booking-modal').classList.remove('active'));
+        document.getElementById('booking-modal').addEventListener('click', (e) => { if (e.target === e.currentTarget) document.getElementById('booking-modal').classList.remove('active'); });
+
+        // ===== Initialize =====
+        loadTurfFromUrl();
+    </script>
+</body>
+
+</html>
